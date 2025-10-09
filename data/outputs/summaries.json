@@ -1,0 +1,219 @@
+{
+  "items": [
+    {
+      "title": "OpenAI's computing deals with Nvidia, AMD, Oracle, and others have topped $1T, commitments that dwarf its revenue and raise questions about how it can fund them (Financial Times)",
+      "url": "https://t.co/ZF109CAyV",
+      "bullets": [
+        "OpenAI's computing deals hit $1 trillion.",
+        "Commitments far exceed its current revenue.",
+        "Raises questions about OpenAI's funding strategy.",
+        "Partners include Nvidia, AMD, and Oracle."
+      ],
+      "why_it_matters": "This highlights the enormous investment needed for advanced AI development and raises concerns about OpenAI's long-term financial viability and funding strategy.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "MrBeast, who earned an estimated $85M in 2025, says AI-generated videos could threaten creators' livelihoods, calling it \"scary times\" for the industry (Sarah Perez/TechCrunch)",
+      "url": "https://techcrunch.com/2025/10/06/mrbeast-says-ai-could-threaten-creators-livelihoods-calling-it-scary-times-for-the-industry/",
+      "bullets": [
+        "MrBeast warns AI videos threaten creator incomes.",
+        "Calls it 'scary times' for the creative industry.",
+        "Despite concerns, he has used AI technology himself."
+      ],
+      "why_it_matters": "A top YouTube creator's concern highlights the growing impact of AI on the creator economy and potential threats to content creators' livelihoods.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Apps in ChatGPT could be OpenAI's most ambitious platform play to date, drawing parallels with Facebook's 2007 efforts to become a platform via social graph (Casey Newton/Platformer)",
+      "url": "https://www.platformer.news/openai-dev-day-2025-platform-chatgpt/",
+      "bullets": [
+        "ChatGPT apps seen as OpenAI's big platform move.",
+        "Compared to Facebook's 2007 platform launch.",
+        "Aims to build a comprehensive ecosystem around ChatGPT."
+      ],
+      "why_it_matters": "This indicates OpenAI's strategic shift to become a foundational platform, potentially transforming how users interact with AI and integrate it into daily applications.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Qualtrics agrees to acquire Press Ganey Forsta, which helps healthcare companies compile feedback from patients and doctors, for $6.75B including debt (Financial Times)",
+      "url": "https://t.co/rg0lrYP9Rm",
+      "bullets": [
+        "Qualtrics to acquire Press Ganey Forsta.",
+        "Deal valued at $6.75 billion (including debt).",
+        "PGF specializes in healthcare feedback solutions.",
+        "Latest in a series of healthcare tech acquisitions."
+      ],
+      "why_it_matters": "This significant acquisition expands Qualtrics' market presence in the healthcare sector, reflecting a strong trend in private equity-backed software and healthcare-focused tech deals.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Google launches a dedicated AI bug bounty program that offers security researchers up to $30,000 for finding vulnerabilities in its AI products (Elissa Welle/The Verge)",
+      "url": "https://www.theverge.com/news/793362/google-ai-security-vulnerability-rewards",
+      "bullets": [
+        "Google starts a specific AI bug bounty.",
+        "Offers up to $30,000 for critical AI vulnerabilities.",
+        "Rewards finding ways to command 'rogue actions' from AI.",
+        "Focuses on strengthening AI product security."
+      ],
+      "why_it_matters": "This shows Google's commitment to enhancing AI safety and security by incentivizing ethical hackers to identify and report potential flaws in its AI systems.",
+      "type": "announcement",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Oracle urges customers to patch an E-Business Suite vulnerability that is being exploited by cybercriminals; Mandiant says the Clop hacking group exploited it (Jonathan Greig/The Record)",
+      "url": "https://therecord.media/fbi-uk-urge-orgs-to-patch-after-clop-campaign",
+      "bullets": [
+        "Oracle urges users to patch E-Business Suite vulnerability.",
+        "Vulnerability actively exploited by cybercriminals.",
+        "Mandiant identifies Clop hacking group as exploiters.",
+        "Immediate patching is critical for security."
+      ],
+      "why_it_matters": "This is a critical security alert requiring urgent action to protect Oracle E-Business Suite users from active exploitation by a known cybercriminal group.",
+      "type": "troubleshooting",
+      "key_commands": [
+        "Apply the latest security patch for Oracle E-Business Suite immediately."
+      ],
+      "caveats": [
+        "Failure to patch could lead to data breaches or system compromise.",
+        "Verify patch compatibility and backup systems before deployment."
+      ]
+    },
+    {
+      "title": "OpenAI unveils the Apps SDK, built on MPC, in preview to let developers build apps for ChatGPT, and says it will begin accepting app submissions later this year (Carl Franzen/VentureBeat)",
+      "url": "https://venturebeat.com/ai/openai-announces-apps-sdk-allowing-chatgpt-to-launch-and-run-third-party",
+      "bullets": [
+        "OpenAI launched a new SDK for developers.",
+        "It allows building apps for ChatGPT.",
+        "App submissions open later this year.",
+        "SDK is currently in preview mode."
+      ],
+      "why_it_matters": "This opens ChatGPT to a wider ecosystem of third-party applications, making the AI platform more versatile and integrated. It signals OpenAI's move towards an app store-like model for AI.",
+      "type": "announcement",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "OpenAI announces apps that work inside ChatGPT, starting with Booking.com, Canva, Coursera, Figma, Expedia, Spotify, and Zillow for users outside of the EU (OpenAI)",
+      "url": "https://openai.com/index/introducing-apps-in-chatgpt/",
+      "bullets": [
+        "ChatGPT now integrates third-party apps.",
+        "Initial partners: Booking.com, Canva, Spotify, Expedia, others.",
+        "Available for users outside the EU.",
+        "A new generation of chat-enabled apps."
+      ],
+      "why_it_matters": "This brings immediate utility to ChatGPT, allowing users to perform tasks like booking travel or creating designs directly through the AI, enhancing its capabilities beyond just conversation.",
+      "type": "announcement",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "SCOTUS turns down Google's request to halt key parts of a judge's order requiring Google to make major changes to Play Store in an antitrust case filed by Epic (Mike Scarcella/Reuters)",
+      "url": "https://www.reuters.com/sustainability/boards-policy-regulation/us-supreme-court-allows-order-forcing-google-make-app-store-reforms-2025-10-06/",
+      "bullets": [
+        "SCOTUS denied Google's appeal.",
+        "Google must change its Play Store.",
+        "Order from Epic Games' antitrust suit.",
+        "Affects how Google manages its app store."
+      ],
+      "why_it_matters": "This is a significant blow to Google's control over the Play Store, potentially leading to more openness and competition in the Android app ecosystem. It could empower developers and offer users more choices.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Cerebras CEO Andrew Feldman says the AI chipmaker pulled its IPO filing to share updated financials, admitting it was a mistake not to explain the move sooner (Jordan Novet/CNBC)",
+      "url": "https://www.cnbc.com/2025/10/06/cerebras-ceo-says-company-still-intends-to-go-public.html",
+      "bullets": [
+        "Cerebras pulled its IPO filing.",
+        "Aims to share updated financials.",
+        "CEO admitted poor communication.",
+        "Company still plans to go public."
+      ],
+      "why_it_matters": "This temporary withdrawal raises questions about Cerebras's financial health or market timing, but the CEO's clarification aims to reassure investors of future IPO plans for the AI chip market.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Sources: the SEC has been probing AppLovin over allegations that it violated platform partners' agreements to push more targeted ads to consumers; APP drops 14% (Olivia Solon/Bloomberg)",
+      "url": "https://www.bloomberg.com/news/articles/2025-10-06/applovin-has-been-probed-by-sec-over-data-collection-practices",
+      "bullets": [
+        "SEC is probing AppLovin.",
+        "Allegations: violated partner agreements.",
+        "Pushed more targeted ads.",
+        "AppLovin stock dropped 14%.",
+        "Probe concerns data practices."
+      ],
+      "why_it_matters": "An SEC probe and stock drop signal serious regulatory and financial risks for AppLovin, highlighting increased scrutiny on data privacy and advertising practices in the tech industry.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "OpenAI announces API updates, including GPT-5 Pro, Sora 2 in preview, and gpt-realtime-mini, a voice model that is 70% cheaper than gpt-realtime (Rebecca Bellan/TechCrunch)",
+      "url": "https://techcrunch.com/2025/10/06/openai-ramps-up-developer-push-with-more-powerful-models-in-its-api/",
+      "bullets": [
+        "OpenAI updated its API.",
+        "Introduced GPT-5 Pro language model.",
+        "Sora 2 video generation model in preview.",
+        "New, cheaper voice model: gpt-realtime-mini.",
+        "Aims for more powerful, cost-effective AI."
+      ],
+      "why_it_matters": "These updates provide developers with more advanced, diverse, and potentially more affordable AI tools, driving innovation in areas like sophisticated language processing, video creation, and real-time voice applications.",
+      "type": "announcement",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "Bee Maps, a decentralized mapping project powered by Hivemapper on the Solana blockchain, raised $32M to expand its network by distributing AI-enabled dashcams (CoinDesk)",
+      "url": "https://www.coindesk.com/tech/2025/10/06/bee-maps-raises-usd32m-to-scale-solana-powered-decentralized-mapping-network",
+      "bullets": [
+        "Bee Maps secured $32M in funding.",
+        "It's a decentralized mapping project on Solana blockchain.",
+        "Uses AI-enabled dashcams for data collection.",
+        "Aims to expand its global mapping network."
+      ],
+      "why_it_matters": "This funding will help scale a Web3 alternative to traditional mapping services, leveraging blockchain and AI to offer more current and globally distributed map data.",
+      "type": "news",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "OpenAI makes Codex generally available, and announces new features: Slack integration, a new Codex SDK, and new admin tools (OpenAI)",
+      "url": "https://openai.com/index/codex-now-generally-available/",
+      "bullets": [
+        "OpenAI's Codex is now generally available (GA).",
+        "New features include Slack integration.",
+        "A new Codex SDK has been released.",
+        "New admin tools for managing Codex are available."
+      ],
+      "why_it_matters": "General availability and new tools make Codex more accessible and practical for developers, accelerating AI-assisted coding and software development for engineering teams.",
+      "type": "announcement",
+      "key_commands": [],
+      "caveats": []
+    },
+    {
+      "title": "OpenAI launches AgentKit, a toolkit for building and deploying AI agents, including Agent Builder, which Sam Altman described as like Canva for building agents (Rebecca Bellan/TechCrunch)",
+      "url": "https://techcrunch.com/2025/10/06/openai-launches-agentkit-to-help-developers-build-and-ship-ai-agents/",
+      "bullets": [
+        "OpenAI launched AgentKit at its Dev Day event.",
+        "It's a toolkit for creating and deploying AI agents.",
+        "Includes 'Agent Builder,' likened to Canva for agents.",
+        "Aims to help developers build and ship AI agents easily."
+      ],
+      "why_it_matters": "AgentKit simplifies AI agent development, potentially democratizing access to advanced AI applications and enabling more users to build custom AI tools with a user-friendly interface.",
+      "type": "announcement",
+      "key_commands": [],
+      "caveats": []
+    }
+  ]
+}

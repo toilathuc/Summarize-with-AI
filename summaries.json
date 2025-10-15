@@ -1,221 +1,181 @@
 {
   "items": [
     {
-      "title": "OpenAI's computing deals with Nvidia, AMD, Oracle, and others have topped $1T, commitments that dwarf its revenue and raise questions about how it can fund them (Financial Times)",
-      "url": "https://t.co/ZF109CAyV",
+      "title": "TiVo confirms that it exited the hardware business on October 1 when it stopped selling DVRs, but says it will continue to offer support for the products (Michael Schneider/Variety)",
+      "url": "https://variety.com/2025/tv/news/tivo-stopped-selling-dvrs-exits-hardware-business-1236552025/",
       "bullets": [
-        "OpenAI's computing deals hit $1 trillion.",
-        "Commitments far exceed its current revenue.",
-        "Raises questions about OpenAI's funding strategy.",
-        "Partners include Nvidia, AMD, and Oracle."
+        "TiVo stopped selling DVRs on Oct 1, exiting its hardware business.",
+        "The company confirmed it will continue to offer support for existing products.",
+        "Marks the end of an era for a pioneering time-shifting TV device."
       ],
-      "why_it_matters": "This highlights the enormous investment needed for advanced AI development and raises concerns about OpenAI's long-term financial viability and funding strategy.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "This move signals the end of a once-innovative home entertainment device, reflecting the shift in media consumption towards streaming and digital services.",
+      "type": "news"
     },
     {
-      "title": "MrBeast, who earned an estimated $85M in 2025, says AI-generated videos could threaten creators' livelihoods, calling it \"scary times\" for the industry (Sarah Perez/TechCrunch)",
-      "url": "https://techcrunch.com/2025/10/06/mrbeast-says-ai-could-threaten-creators-livelihoods-calling-it-scary-times-for-the-industry/",
+      "title": "A new study of 6,554 children aged 9 to 10 found that social media users scored lower on reading, vocabulary, and memory tests two years later than non-users (Rhitu Chatterjee/NPR)",
+      "url": "https://www.npr.org/sections/shots-health-news/2025/10/13/nx-s1-5571050/social-media-teens-brains-reading-memory",
       "bullets": [
-        "MrBeast warns AI videos threaten creator incomes.",
-        "Calls it 'scary times' for the creative industry.",
-        "Despite concerns, he has used AI technology himself."
+        "Study of 6,554 children (9-10) linked social media use to lower test scores.",
+        "Users performed poorer in reading, vocabulary, and memory two years later.",
+        "Findings suggest potential negative cognitive impact on pre-teens."
       ],
-      "why_it_matters": "A top YouTube creator's concern highlights the growing impact of AI on the creator economy and potential threats to content creators' livelihoods.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "This research highlights potential long-term cognitive risks for young social media users, urging caution and further study into the effects of screen time on child development.",
+      "type": "news"
     },
     {
-      "title": "Apps in ChatGPT could be OpenAI's most ambitious platform play to date, drawing parallels with Facebook's 2007 efforts to become a platform via social graph (Casey Newton/Platformer)",
-      "url": "https://www.platformer.news/openai-dev-day-2025-platform-chatgpt/",
+      "title": "A look at quick commerce in India and China: India's ecosystem is evolving into a retail-media play, while China's is being used as a weapon in platform wars (Manish Singh/India Dispatch)",
+      "url": "https://indiadispatch.com/p/quick-commerce-india-china",
       "bullets": [
-        "ChatGPT apps seen as OpenAI's big platform move.",
-        "Compared to Facebook's 2007 platform launch.",
-        "Aims to build a comprehensive ecosystem around ChatGPT."
+        "Quick commerce in India is evolving into a retail-media platform.",
+        "In China, quick commerce is being utilized as a weapon in platform wars.",
+        "Globally, quick commerce has struggled or stalled in many markets."
       ],
-      "why_it_matters": "This indicates OpenAI's strategic shift to become a foundational platform, potentially transforming how users interact with AI and integrate it into daily applications.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "This analysis shows diverse strategies and challenges for quick commerce, indicating varying market maturity and competitive landscapes across different regions.",
+      "type": "news"
     },
     {
-      "title": "Qualtrics agrees to acquire Press Ganey Forsta, which helps healthcare companies compile feedback from patients and doctors, for $6.75B including debt (Financial Times)",
-      "url": "https://t.co/rg0lrYP9Rm",
+      "title": "Dealroom: 230+ European defense tech startups have launched since Russia's invasion of Ukraine, driven by interest in drones, as investors foresee a shake-out (Sylvia Pfeifer/Financial Times)",
+      "url": "https://www.ft.com/content/6c247bbe-0181-472f-8369-581e2fd4f19b",
       "bullets": [
-        "Qualtrics to acquire Press Ganey Forsta.",
-        "Deal valued at $6.75 billion (including debt).",
-        "PGF specializes in healthcare feedback solutions.",
-        "Latest in a series of healthcare tech acquisitions."
+        "Over 230 European defense tech startups launched since Ukraine invasion.",
+        "Growth is largely driven by increased interest in drone technology.",
+        "Investors anticipate a consolidation or 'shake-out' in the sector."
       ],
-      "why_it_matters": "This significant acquisition expands Qualtrics' market presence in the healthcare sector, reflecting a strong trend in private equity-backed software and healthcare-focused tech deals.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "This reflects a surge in defense innovation fueled by geopolitical events, but also points to potential market saturation and intense competition among new ventures.",
+      "type": "news"
     },
     {
-      "title": "Google launches a dedicated AI bug bounty program that offers security researchers up to $30,000 for finding vulnerabilities in its AI products (Elissa Welle/The Verge)",
-      "url": "https://www.theverge.com/news/793362/google-ai-security-vulnerability-rewards",
+      "title": "Nvidia says it is donating the Vera Rubin NVL144 server rack architecture to the Open Compute Project and outlines its vision for \"gigawatt AI factories\" (Mike Wheatley/SiliconANGLE)",
+      "url": "https://siliconangle.com/2025/10/13/nvidia-unveils-vision-gigawatt-ai-factories-based-vera-rubin-architecture/",
       "bullets": [
-        "Google starts a specific AI bug bounty.",
-        "Offers up to $30,000 for critical AI vulnerabilities.",
-        "Rewards finding ways to command 'rogue actions' from AI.",
-        "Focuses on strengthening AI product security."
+        "Nvidia donated Vera Rubin NVL144 server architecture to Open Compute Project.",
+        "Outlined its vision for \"gigawatt AI factories\" at the OCP Global Summit.",
+        "Aims to enable massive-scale, energy-intensive AI infrastructure."
       ],
-      "why_it_matters": "This shows Google's commitment to enhancing AI safety and security by incentivizing ethical hackers to identify and report potential flaws in its AI systems.",
-      "type": "announcement",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "Signifies Nvidia's commitment to open standards and its ambitious plans for future AI data centers, which will shape the development of large-scale AI infrastructure.",
+      "type": "news"
     },
     {
-      "title": "Oracle urges customers to patch an E-Business Suite vulnerability that is being exploited by cybercriminals; Mandiant says the Clop hacking group exploited it (Jonathan Greig/The Record)",
-      "url": "https://therecord.media/fbi-uk-urge-orgs-to-patch-after-clop-campaign",
+      "title": "Researchers used an off-the-shelf system to compile a vast collection of private data, including T-Mobile users' calls and texts, sent by satellites unencrypted (Wired)",
+      "url": "https://www.wired.com/story/satellites-are-leaking-the-worlds-secrets-calls-texts-military-and-corporate-data/",
       "bullets": [
-        "Oracle urges users to patch E-Business Suite vulnerability.",
-        "Vulnerability actively exploited by cybercriminals.",
-        "Mandiant identifies Clop hacking group as exploiters.",
-        "Immediate patching is critical for security."
+        "Researchers found private data leaked via unencrypted satellite transmissions.",
+        "Used basic, off-the-shelf equipment (costing ~$800) for collection.",
+        "Data included T-Mobile user calls/texts, military, and corporate info."
       ],
-      "why_it_matters": "This is a critical security alert requiring urgent action to protect Oracle E-Business Suite users from active exploitation by a known cybercriminal group.",
+      "why_it_matters": "This exposes a critical vulnerability in satellite communications, highlighting an urgent need for stronger encryption to protect private and sensitive information.",
+      "type": "news"
+    },
+    {
+      "title": "Sources: Tata Electronics bought the Indian unit of Justech Precision, a China-based Apple supplier that provides CNC machines to Foxconn, for ~$100M in August (Anniek Bao/CNBC)",
+      "url": "https://www.cnbc.com/2025/10/14/tata-electronics-buys-chinese-iphone-supplier-justech-india-unit.html",
+      "bullets": [
+        "Tata Electronics acquired Justech Precision's Indian unit for ~$100M.",
+        "Justech is a China-based Apple supplier for CNC machines to Foxconn.",
+        "The deal happened in August, as per sources."
+      ],
+      "why_it_matters": "This acquisition strengthens India's role in Apple's supply chain and boosts local electronics manufacturing capabilities.",
+      "type": "news"
+    },
+    {
+      "title": "Bhutan announces that it is migrating its national ID system for roughly 800,000 residents from Polygon to Ethereum, with completion expected by Q1 2026 (Brayden Lindrea/Cointelegraph)",
+      "url": "https://cointelegraph.com/news/bhutan-migrates-ethereum-national-id",
+      "bullets": [
+        "Bhutan is moving its national ID system for 800,000 residents.",
+        "The migration is from Polygon to the Ethereum blockchain.",
+        "Expected completion is by Q1 2026."
+      ],
+      "why_it_matters": "This showcases growing government adoption of blockchain technology for crucial national services like identity management.",
+      "type": "news"
+    },
+    {
+      "title": "Indian officials say that over the past year, all 1.2M email addresses of Central Government employees migrated to a platform developed by Chennai-based Zoho (The Hindu)",
+      "url": "https://www.thehindu.com/news/national/email-accounts-of-12-lakh-central-government-employees-now-run-on-zohos-platform/article70155315.ece",
+      "bullets": [
+        "1.2 million Indian Central Government emails migrated to Zoho's platform.",
+        "The migration was completed over the last year.",
+        "Zoho is a Chennai-based company."
+      ],
+      "why_it_matters": "This is a significant adoption of a domestic tech solution by the Indian government, supporting local businesses.",
+      "type": "news"
+    },
+    {
+      "title": "Mumbai-based wealth management startup Dezerv raised a ~$40M Series C co-led by Premji Invest and Accel's Global Growth Fund, taking its total funding to ~$100M (Shashank Pathak/Entrackr)",
+      "url": "https://entrackr.com/news/wealthtech-firm-dezerv-raises-40-mn-led-by-premji-invest-and-accel-10555803",
+      "bullets": [
+        "Dezerv, a Mumbai wealth management startup, secured ~$40M Series C.",
+        "Funding round co-led by Premji Invest and Accel's Global Growth Fund.",
+        "Total funding for Dezerv now reaches approximately ~$100M."
+      ],
+      "why_it_matters": "Highlights strong investor confidence in India's wealth management tech sector and the country's startup ecosystem.",
+      "type": "news"
+    },
+    {
+      "title": "Researchers detail \"Pixnapping\", a new covert attack to steal 2FA codes and other private data on Android; Google's September patch only partially mitigates it (Dan Goodin/Ars Technica)",
+      "url": "https://arstechnica.com/security/2025/10/no-fix-yet-for-attack-that-lets-hackers-pluck-2fa-codes-from-android-phones/",
+      "bullets": [
+        "New Android attack, \"Pixnapping,\" steals 2FA codes and private data.",
+        "Attack is covert and can steal data in under 30 seconds.",
+        "Google's September patch provides only partial mitigation."
+      ],
+      "why_it_matters": "Android users remain vulnerable to critical data theft, requiring continued vigilance against new and evolving security threats.",
       "type": "troubleshooting",
       "key_commands": [
-        "Apply the latest security patch for Oracle E-Business Suite immediately."
+        "Check for OS updates frequently and install them.",
+        "Be cautious with app permissions, especially screen recording/accessibility.",
+        "Use hardware 2FA keys if available for enhanced security."
       ],
       "caveats": [
-        "Failure to patch could lead to data breaches or system compromise.",
-        "Verify patch compatibility and backup systems before deployment."
+        "The September patch does not fully fix this vulnerability.",
+        "Users should be extra vigilant about suspicious app behavior.",
+        "This exploit targets sensitive on-screen information."
       ]
     },
     {
-      "title": "OpenAI unveils the Apps SDK, built on MPC, in preview to let developers build apps for ChatGPT, and says it will begin accepting app submissions later this year (Carl Franzen/VentureBeat)",
-      "url": "https://venturebeat.com/ai/openai-announces-apps-sdk-allowing-chatgpt-to-launch-and-run-third-party",
+      "title": "The UK's NCSC dealt with a record 204 \"nationally significant\" cyberattacks in the year to August, up 89% YoY, and \"highly significant\" cyberattacks rose by 50% (Joe Tidy/BBC)",
+      "url": "https://www.bbc.com/news/articles/ced61xv967lo",
       "bullets": [
-        "OpenAI launched a new SDK for developers.",
-        "It allows building apps for ChatGPT.",
-        "App submissions open later this year.",
-        "SDK is currently in preview mode."
+        "UK's NCSC handled a record 204 major cyberattacks to August.",
+        "This marks an 89% increase in a year for nationally significant attacks.",
+        "\"Highly significant\" cyberattacks also rose by 50%."
       ],
-      "why_it_matters": "This opens ChatGPT to a wider ecosystem of third-party applications, making the AI platform more versatile and integrated. It signals OpenAI's move towards an app store-like model for AI.",
-      "type": "announcement",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "Indicates a sharp increase in cyber threats, emphasizing the urgent need for enhanced digital security measures across the UK.",
+      "type": "news"
     },
     {
-      "title": "OpenAI announces apps that work inside ChatGPT, starting with Booking.com, Canva, Coursera, Figma, Expedia, Spotify, and Zillow for users outside of the EU (OpenAI)",
-      "url": "https://openai.com/index/introducing-apps-in-chatgpt/",
+      "title": "California Gov. Gavin Newsom vetoes SB 771, which would've fined social media companies if their algorithms intentionally promoted violent or extremist content (Tyler Katzenberger/Politico)",
+      "url": "https://www.politico.com/news/2025/10/13/newsom-siding-with-tech-giants-vetoes-online-hate-speech-bill-00606600",
       "bullets": [
-        "ChatGPT now integrates third-party apps.",
-        "Initial partners: Booking.com, Canva, Spotify, Expedia, others.",
-        "Available for users outside the EU.",
-        "A new generation of chat-enabled apps."
+        "CA Gov. Newsom vetoed SB 771.",
+        "The bill aimed to fine social media firms for promoting violent content via algorithms.",
+        "Newsom stated concerns but called the bill 'premature'."
       ],
-      "why_it_matters": "This brings immediate utility to ChatGPT, allowing users to perform tasks like booking travel or creating designs directly through the AI, enhancing its capabilities beyond just conversation.",
-      "type": "announcement",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "This veto protects tech companies from potential penalties related to their content algorithms, influencing future efforts to regulate online hate speech.",
+      "type": "news"
     },
     {
-      "title": "SCOTUS turns down Google's request to halt key parts of a judge's order requiring Google to make major changes to Play Store in an antitrust case filed by Epic (Mike Scarcella/Reuters)",
-      "url": "https://www.reuters.com/sustainability/boards-policy-regulation/us-supreme-court-allows-order-forcing-google-make-app-store-reforms-2025-10-06/",
+      "title": "Nvidia says it will begin selling the DGX Spark mini PC for AI developers on October 15 on Nvidia.com and select third-party retailers for $3,999 (Michael Kan/PCMag)",
+      "url": "https://www.pcmag.com/news/nvidia-to-start-selling-3999-dgx-spark-mini-pc-this-week",
       "bullets": [
-        "SCOTUS denied Google's appeal.",
-        "Google must change its Play Store.",
-        "Order from Epic Games' antitrust suit.",
-        "Affects how Google manages its app store."
+        "Nvidia to launch DGX Spark mini PC for AI developers.",
+        "Available Oct 15 for $3,999 on Nvidia.com & select retailers.",
+        "This is a specialized mini-PC, not intended for general consumers."
       ],
-      "why_it_matters": "This is a significant blow to Google's control over the Play Store, potentially leading to more openness and competition in the Android app ecosystem. It could empower developers and offer users more choices.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "This provides a compact, powerful tool for AI developers, potentially accelerating AI research and innovation by making specialized hardware more accessible.",
+      "type": "announcement"
     },
     {
-      "title": "Cerebras CEO Andrew Feldman says the AI chipmaker pulled its IPO filing to share updated financials, admitting it was a mistake not to explain the move sooner (Jordan Novet/CNBC)",
-      "url": "https://www.cnbc.com/2025/10/06/cerebras-ceo-says-company-still-intends-to-go-public.html",
+      "title": "Samsung projects Q3 operating profit up 32% YoY to ~$8.47B, vs. ~$6.8B est., its biggest quarterly profit in over three years, as AI development accelerates (Yoolim Lee/Bloomberg)",
+      "url": "https://www.bloomberg.com/news/articles/2025-10-13/samsung-rides-global-ai-boom-to-its-biggest-profit-since-2022",
       "bullets": [
-        "Cerebras pulled its IPO filing.",
-        "Aims to share updated financials.",
-        "CEO admitted poor communication.",
-        "Company still plans to go public."
+        "Samsung forecasts Q3 operating profit to rise 32% YoY to ~$8.47B.",
+        "This exceeds estimates of ~$6.8B, marking its highest in 3+ years.",
+        "The strong profit is attributed to accelerating AI development and demand."
       ],
-      "why_it_matters": "This temporary withdrawal raises questions about Cerebras's financial health or market timing, but the CEO's clarification aims to reassure investors of future IPO plans for the AI chip market.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
-    },
-    {
-      "title": "Sources: the SEC has been probing AppLovin over allegations that it violated platform partners' agreements to push more targeted ads to consumers; APP drops 14% (Olivia Solon/Bloomberg)",
-      "url": "https://www.bloomberg.com/news/articles/2025-10-06/applovin-has-been-probed-by-sec-over-data-collection-practices",
-      "bullets": [
-        "SEC is probing AppLovin.",
-        "Allegations: violated partner agreements.",
-        "Pushed more targeted ads.",
-        "AppLovin stock dropped 14%.",
-        "Probe concerns data practices."
-      ],
-      "why_it_matters": "An SEC probe and stock drop signal serious regulatory and financial risks for AppLovin, highlighting increased scrutiny on data privacy and advertising practices in the tech industry.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
-    },
-    {
-      "title": "OpenAI announces API updates, including GPT-5 Pro, Sora 2 in preview, and gpt-realtime-mini, a voice model that is 70% cheaper than gpt-realtime (Rebecca Bellan/TechCrunch)",
-      "url": "https://techcrunch.com/2025/10/06/openai-ramps-up-developer-push-with-more-powerful-models-in-its-api/",
-      "bullets": [
-        "OpenAI updated its API.",
-        "Introduced GPT-5 Pro language model.",
-        "Sora 2 video generation model in preview.",
-        "New, cheaper voice model: gpt-realtime-mini.",
-        "Aims for more powerful, cost-effective AI."
-      ],
-      "why_it_matters": "These updates provide developers with more advanced, diverse, and potentially more affordable AI tools, driving innovation in areas like sophisticated language processing, video creation, and real-time voice applications.",
-      "type": "announcement",
-      "key_commands": [],
-      "caveats": []
-    },
-    {
-      "title": "Bee Maps, a decentralized mapping project powered by Hivemapper on the Solana blockchain, raised $32M to expand its network by distributing AI-enabled dashcams (CoinDesk)",
-      "url": "https://www.coindesk.com/tech/2025/10/06/bee-maps-raises-usd32m-to-scale-solana-powered-decentralized-mapping-network",
-      "bullets": [
-        "Bee Maps secured $32M in funding.",
-        "It's a decentralized mapping project on Solana blockchain.",
-        "Uses AI-enabled dashcams for data collection.",
-        "Aims to expand its global mapping network."
-      ],
-      "why_it_matters": "This funding will help scale a Web3 alternative to traditional mapping services, leveraging blockchain and AI to offer more current and globally distributed map data.",
-      "type": "news",
-      "key_commands": [],
-      "caveats": []
-    },
-    {
-      "title": "OpenAI makes Codex generally available, and announces new features: Slack integration, a new Codex SDK, and new admin tools (OpenAI)",
-      "url": "https://openai.com/index/codex-now-generally-available/",
-      "bullets": [
-        "OpenAI's Codex is now generally available (GA).",
-        "New features include Slack integration.",
-        "A new Codex SDK has been released.",
-        "New admin tools for managing Codex are available."
-      ],
-      "why_it_matters": "General availability and new tools make Codex more accessible and practical for developers, accelerating AI-assisted coding and software development for engineering teams.",
-      "type": "announcement",
-      "key_commands": [],
-      "caveats": []
-    },
-    {
-      "title": "OpenAI launches AgentKit, a toolkit for building and deploying AI agents, including Agent Builder, which Sam Altman described as like Canva for building agents (Rebecca Bellan/TechCrunch)",
-      "url": "https://techcrunch.com/2025/10/06/openai-launches-agentkit-to-help-developers-build-and-ship-ai-agents/",
-      "bullets": [
-        "OpenAI launched AgentKit at its Dev Day event.",
-        "It's a toolkit for creating and deploying AI agents.",
-        "Includes 'Agent Builder,' likened to Canva for agents.",
-        "Aims to help developers build and ship AI agents easily."
-      ],
-      "why_it_matters": "AgentKit simplifies AI agent development, potentially democratizing access to advanced AI applications and enabling more users to build custom AI tools with a user-friendly interface.",
-      "type": "announcement",
-      "key_commands": [],
-      "caveats": []
+      "why_it_matters": "Samsung's robust financial performance underscores the significant positive impact of the global AI boom on major tech companies, especially in the chip sector.",
+      "type": "news"
     }
   ],
-  "last_updated": "2025-10-07T15:07:55.058284",
+  "last_updated": "2025-10-14T15:45:23.442915",
   "total_items": 15
 }

@@ -53,6 +53,7 @@ class Settings:
         feed_user_agent: Optional[str] = None,
         output_path: Optional[Path] = None,
     ) -> None:
+        # "None:" nghĩa là sử dụng biến môi trường hoặc mặc định
         root_dir = Path(__file__).resolve().parents[2]
         default_output = root_dir / "data" / "outputs" / "summaries.json"
 

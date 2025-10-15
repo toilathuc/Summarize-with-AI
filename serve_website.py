@@ -70,7 +70,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     # Run the full AI update script
                     import os
                     result = subprocess.run([
-                        'py', '-3.13', 'update_news.py'
+                        'python', 'update_news.py'
                     ], capture_output=True, text=True, timeout=600, shell=True, cwd=os.getcwd())
                     
                     print(f"📊 Update result: return_code={result.returncode}")

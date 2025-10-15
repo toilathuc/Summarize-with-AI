@@ -12,10 +12,10 @@ import google.generativeai as genai
 
 class GeminiClient:
     """Wrapper for executing prompts against a Gemini generative model."""
-
+    #  hàm __init__ khởi tạo GeminiClient với các tham số như api_key, model, max_retries và retry_backoff.
     def __init__(
         self,
-        *,
+        *, 
         api_key: str,
         model: str,
         max_retries: int = 3,

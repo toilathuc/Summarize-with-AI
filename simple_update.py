@@ -31,15 +31,33 @@ def simple_update():
         
         # 2. Convert to simple format (without AI summary)
         print("2️⃣ Converting to simple format...")
-        
+
+        # Helper to try to format published time into a readable string
+        def _fmt_time(ts: str) -> str:
+            if not ts:
+                return ""
+            try:
+                # Try ISO format first
+                return datetime.fromisoformat(ts).strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                # Fallback: return raw string
+                return ts
+
         simple_items = []
         for article in articles:
+            # Prefer an explicit source field if available, else fall back to a short summary
+            source = (
+                article.raw.get('source')
+                or article.raw.get('site')
+                or (article.summary_text or '')[:80]
+            )
+
             simple_item = {
                 "title": article.title,
                 "url": article.original_url or article.techmeme_url,
                 "bullets": [
-                    f"Nguồn: {(article.summary_text or '')[:100]}...",
-                    f"Thời gian: {article.raw.get('published_at', '')}",
+                    f"Nguồn: {source}",
+                    f"Thời gian: {_fmt_time(article.raw.get('published_at', ''))}",
                     f"Link gốc: {article.techmeme_url}"
                 ],
                 "why_it_matters": "Tin tức công nghệ quan trọng từ Techmeme. Cần đọc để cập nhật xu hướng ngành.",

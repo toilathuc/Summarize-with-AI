@@ -14,7 +14,7 @@ echo.
 
 REM Chạy script cập nhật
 call update_news.bat
-
+gogle
 echo.
 echo [%date% %time%] Hoan thanh. Cho 30 phut...
 echo.

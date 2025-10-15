@@ -27,6 +27,7 @@ class CustomHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     
     def end_headers(self):
         # Add CORS headers for local development
+        # Cors là Cross-Origin Resource Sharing 
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
@@ -196,9 +197,8 @@ def check_files():
     """Check if required files exist"""
     required_files = [
         'news.html',
-        'styles.css', 
-        'script.js',
-        'summaries.json'
+        'styles.css',
+        'js/main.js'
     ]
     
     missing_files = []
@@ -212,6 +212,20 @@ def check_files():
             print(f"   - {file}")
         print("\n💡 Make sure you're running this from the correct directory")
         sys.exit(1)
+    
+    # Check if summaries.json exists, if not try to copy from data/outputs
+    if not Path('summaries.json').exists():
+        print("⚠️  summaries.json not found in root")
+        output_path = Path('data/outputs/summaries.json')
+        if output_path.exists():
+            print("📁 Copying from data/outputs/summaries.json...")
+            import shutil
+            shutil.copy2(output_path, 'summaries.json')
+            print("✅ summaries.json copied successfully")
+        else:
+            print("❌ No data file found!")
+            print("💡 Please run: python update_news.py first")
+            sys.exit(1)
     
     print("✅ All required files found")
 

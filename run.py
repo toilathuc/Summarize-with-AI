@@ -26,7 +26,7 @@ def check_requirements():
         "serve_website.py",
         "news.html", 
         "styles.css",
-        "script.js"
+        "js/main.js"
     ]
     
     for file in required_files:

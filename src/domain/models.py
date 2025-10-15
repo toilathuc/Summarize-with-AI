@@ -116,3 +116,5 @@ class SummaryPayload:
     def from_existing(cls, summaries: Iterable[Dict[str, Any]]) -> "SummaryPayload":
         return cls([SummaryResult.from_dict(entry) for entry in summaries])
 
+    
+# from existing này có nhiệm vụ và gì?

@@ -11,31 +11,6 @@ from pathlib import Path
 import json
 from datetime import datetime
 
-# Force use Windows Python if available
-PYTHON_PATHS = [
-    r"C:\Users\ADMIN\AppData\Local\Programs\Python\Python313\python.exe",
-    r"C:\Python313\python.exe",
-    r"C:\Python312\python.exe", 
-    r"C:\Python311\python.exe",
-    sys.executable
-]
-
-def get_windows_python():
-    """Tìm Python interpreter có thể dùng được với google-generativeai"""
-    for python_path in PYTHON_PATHS:
-        if os.path.exists(python_path):
-            try:
-                # Test import
-                result = subprocess.run([
-                    python_path, "-c", 
-                    "import google.generativeai; print('OK')"
-                ], capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    return python_path
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                continue
-    return None
-
 # Add src to Python path
 sys.path.append(str(Path(__file__).parent / "src"))
 
@@ -48,33 +23,15 @@ def run_pipeline():
     """Chạy pipeline để lấy dữ liệu mới"""
     print_step(1, "🔄 Đang lấy dữ liệu mới từ Techmeme...")
     
-    # Tìm Python interpreter phù hợp
-    windows_python = get_windows_python()
-    if not windows_python:
-        print("❌ Không tìm thấy Python interpreter có google-generativeai")
-        print("💡 Cài đặt bằng: py -m pip install google-generativeai")
-        return False
-    
-    print(f"✅ Sử dụng Python: {windows_python}")
-    
-    # Import và chạy pipeline trực tiếp
     try:
-        # Ensure sys.path có src để import hoạt động
-        src_path = str(Path(__file__).parent / "src")
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
-            
         from src.pipelines.news_pipeline import NewsPipeline
+
         pipeline = NewsPipeline()
-        print("📊 Đang xử lý dữ liệu với AI...")
-        pipeline.run(top_n=25)
+        pipeline.run(top_n=25)  # Lấy 25 bài mới nhất
         print("✅ Lấy dữ liệu thành công!")
         return True
     except Exception as e:
         print(f"❌ Lỗi khi lấy dữ liệu: {e}")
-        import traceback
-        print("🔍 Chi tiết lỗi:")
-        traceback.print_exc()
         return False
 
 def copy_data():
@@ -159,12 +116,6 @@ def main():
     print("=" * 40)
     print(f"⏰ Thời gian: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     print("=" * 40)
-    
-    # Debug info
-    print("🔍 Debug info:")
-    print(f"   Python: {sys.executable}")
-    print(f"   Working dir: {os.getcwd()}")
-    print(f"   Sys.path[0]: {sys.path[0]}")
     
     # Kiểm tra môi trường
     if not Path("src").exists():

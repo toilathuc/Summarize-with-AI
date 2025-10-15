@@ -21,7 +21,7 @@ e:\Viscode\Demo_Skola/
 ├── 🔑 .env                         # Environment variables (API keys)
 ├── 🌐 news.html                    # Main web interface
 ├── 🎨 styles.css                   # Responsive CSS with animations
-├── ⚡ script.js                    # Frontend JavaScript logic
+├── ⚡ js/main.js                    # Frontend JavaScript logic
 ├── 📊 summaries.json               # Generated news data
 ├── 🖥️ serve_website.py             # Web server with API endpoints
 ├── 🔄 update_news.py               # Full AI update pipeline

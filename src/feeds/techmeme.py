@@ -43,7 +43,7 @@ def fetch_feed(session: requests.Session, url: Optional[str] = None) -> feedpars
 
 
 def main() -> None:
-    """CLI entry point for manual feed inspection."""
+   
 
     parser = argparse.ArgumentParser(description="Fetch Techmeme RSS → JSON (with optional enrich).")
     parser.add_argument("--feed", default=settings.feed.url, help="RSS URL (default: Techmeme)")

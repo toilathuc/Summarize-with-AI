@@ -12,7 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:
+    def load_dotenv(*args, **kwargs):
+        """Fallback noop if python-dotenv is not installed."""
+        return False
 
 # Ensure .env values are available for local development.
 load_dotenv()
@@ -53,7 +58,6 @@ class Settings:
         feed_user_agent: Optional[str] = None,
         output_path: Optional[Path] = None,
     ) -> None:
-        # "None:" nghĩa là sử dụng biến môi trường hoặc mặc định
         root_dir = Path(__file__).resolve().parents[2]
         default_output = root_dir / "data" / "outputs" / "summaries.json"
 
@@ -105,7 +109,7 @@ class Settings:
 _DEFAULT_PROMPT_TEMPLATE = """You are an expert tech news summarizer. Given a list of tech news items with title, url, and content text, generate a concise summary for each item.
 REQUIREMENTS:
 - Valid JSON output: {{"summaries":[{{...}}]}}
-- Each item: A few key bullets (≤80 characters for each bullet), add "why_it_matters".
+ - Each item: A few key bullets (<=80 characters for each bullet), add "why_it_matters".
 - If troubleshooting: add "key_commands" & "caveats".
 - Rephrase in an easy-to-understand way.
 - You can use either English or Vietnamese.

@@ -1,21 +1,18 @@
-"""
-Thin client around the Gemini Generative AI SDK.
-"""
+"""Thin client around the Gemini Generative AI SDK."""
 
 from __future__ import annotations
 
 import time
-from typing import Optional
 
 import google.generativeai as genai
 
 
 class GeminiClient:
     """Wrapper for executing prompts against a Gemini generative model."""
-    #  hàm __init__ khởi tạo GeminiClient với các tham số như api_key, model, max_retries và retry_backoff.
+
     def __init__(
         self,
-        *, 
+        *,
         api_key: str,
         model: str,
         max_retries: int = 3,
@@ -49,4 +46,3 @@ class GeminiClient:
                     raise
                 time.sleep(self._retry_backoff * (attempt + 1))
         return ""
-

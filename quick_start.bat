@@ -16,8 +16,8 @@ echo Python found!
 echo.
 
 echo Checking files...
-if not exist "serve_website.py" (
-    echo ERROR: serve_website.py not found!
+if not exist "src\api\app.py" (
+    echo ERROR: src\api\app.py not found!
     pause
     exit /b 1
 )
@@ -39,13 +39,13 @@ if not exist "summaries.json" (
 echo All files OK!
 echo.
 
-echo Starting website server...
+echo Starting FastAPI server...
 echo Opening browser at http://localhost:8000
 echo.
 echo *** Press Ctrl+C to stop server ***
 echo.
 
 start http://localhost:8000
-python serve_website.py
+call start_fastapi.bat
 
 pause

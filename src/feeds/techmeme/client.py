@@ -59,14 +59,14 @@ class TechmemeFeedClient:
         user_agent: Optional[str] = None,
         session: Optional[requests.Session] = None,
     ) -> None:
-        feed_cfg = settings.feed # Đầu tiên lấy cấu hình feed từ settings(setting có chức năng trung tâm để truy cập cấu hình thời gian chạy)
-        self._feed_url = feed_url or feed_cfg.url # Nếu không có feed_url được cung cấp, sử dụng URL mặc định từ cấu hình 
-        # ví dụ nếu không có feed_url thì sử dụng "https://www.techmeme.com/feed.xml"
+        feed_cfg = settings.feed
+        self._feed_url = feed_url or feed_cfg.url
         self._timeout = timeout or feed_cfg.timeout
-        self._session = session or self._make_session(timeout=self._timeout, user_agent=user_agent or feed_cfg.user_agent)
+        user_agent_value = user_agent or feed_cfg.user_agent
+        self._session = session or self._make_session(timeout=self._timeout, user_agent=user_agent_value)
         if not hasattr(self._session, "request_timeout"):
-            self._session.request_timeout = self._timeout 
-            
+            self._session.request_timeout = self._timeout
+
     @staticmethod
     def _make_session(*, timeout: int, user_agent: str) -> requests.Session:
         session = requests.Session()
@@ -92,7 +92,7 @@ class TechmemeFeedClient:
 
     def fetch_raw_feed(self) -> feedparser.FeedParserDict:
         response = self._session.get(self._feed_url, timeout=self._timeout)
-        response.raise_for_status() 
+        response.raise_for_status()
         return feedparser.parse(response.content)
 
     def fetch_articles(self, *, limit: Optional[int] = None) -> List[FeedArticle]:
@@ -325,11 +325,3 @@ def enrich_from_article(session: requests.Session, url: str) -> Dict[str, Any]:
 
     return enriched
 
-# file này gồm những class là:
-# TechmemeFeedClient: Lớp này cung cấp các phương thức để lấy và xử lý dữ liệu từ nguồn cấp RSS của Techmeme.
-# Các hàm hỗ trợ: Bao gồm các hàm như is_external, strip_tracking, html_to_text, to_iso8601, pick_links_from_entry_links, pick_links_from_html, extract_links, as_plain_dict, normalize_feed, enrich_from_article. 
-# Các hàm này giúp xử lý và trích xuất thông tin từ các mục trong nguồn cấp dữ liệu, bao gồm việc làm sạch URL, chuyển đổi HTML thành văn bản thuần túy, chuẩn hóa định dạng ngày tháng,
-#  và trích xuất các liên kết và siêu dữ liệu từ bài viết.
-# Các hàm này hỗ trợ việc lấy và xử lý dữ liệu từ Techmeme một cách hiệu quả và có cấu trúc.
-# Các hàm này có thể được sử dụng để xây dựng các ứng dụng hoặc dịch vụ liên quan đến việc thu thập và phân tích tin tức công nghệ từ Techmeme.
-# Tóm lại, file này cung cấp một bộ công cụ để tương tác với nguồn cấp

@@ -1,376 +1,203 @@
-# 🚀 AI-Powered Tech News Summarizer
+# Tech News Summarizer
 
-An intelligent news aggregation system that fetches the latest tech news from Techmeme, processes them with AI, and presents them in a beautiful web interface with real-time refresh capabilities.
-
-## ✨ Features
-
-- 🔄 **Real-time Data Fetching** from Techmeme RSS feeds
-- 🤖 **AI-Powered Summarization** using Google Gemini 2.0 Flash
-- 🌐 **Modern Web Interface** with responsive design
-- ⚡ **Live Refresh Button** with visual feedback and progress tracking
-- 📱 **Mobile-Friendly** with floating refresh button
-- 🔍 **Search & Filter** functionality for news items
-- 📊 **Analytics Dashboard** with news statistics
-- 🎨 **Beautiful Animations** and loading effects
-
-## 🏗️ Architecture
-
-```
-e:\Viscode\Demo_Skola/
-├── 📄 README.md                    # Project documentation
-├── 🔑 .env                         # Environment variables (API keys)
-├── 🌐 news.html                    # Main web interface
-├── 🎨 styles.css                   # Responsive CSS with animations
-├── ⚡ js/main.js                    # Frontend JavaScript logic
-├── 📊 summaries.json               # Generated news data
-├── 🖥️ serve_website.py             # Web server with API endpoints
-├── 🔄 update_news.py               # Full AI update pipeline
-├── ⚡ simple_update.py             # Quick update without AI
-├── 🧪 quick_refresh.py             # Test refresh functionality
-│
-├── 📁 src/                         # Core Python modules
-│   ├── 🔌 feeds/
-│   │   ├── techmeme.py             # RSS fetching and parsing
-│   │   └── techmeme/
-│   │       └── client.py           # Techmeme API client
-│   ├── 🔧 pipelines/
-│   │   ├── main_pipeline.py        # Main processing pipeline
-│   │   └── news_pipeline.py        # News-specific pipeline
-│   ├── 🤖 services/
-│   │   ├── summarize_with_gemini.py # AI summarization service
-│   │   ├── feed_service.py         # Feed processing service
-│   │   └── storage_service.py      # Data storage service
-│   ├── ⚙️ config/
-│   │   └── settings.py             # Configuration management
-│   ├── 📋 domain/
-│   │   └── models.py               # Data models
-│   └── 🛠️ utils/
-│       ├── json_tools.py           # JSON utilities
-│       └── batching.py             # Batch processing
-│
-├── 📁 data/                        # Data storage
-│   ├── raw/                        # Raw RSS data
-│   │   └── techmeme_sample_full.json
-│   └── outputs/                    # Processed data
-│       └── summaries.json
-│
-├── 📁 public/                      # Static web assets
-│   └── index.html                  # Alternative homepage
-│
-└── 📁 docs/                        # Documentation
-    ├── RUN_GUIDE.md                # How to run the system
-    ├── REAL_REFRESH_GUIDE.md       # Refresh functionality guide
-    ├── REFRESH_FIX_REPORT.md       # Bug fix documentation
-    └── WEBSITE_README.md           # Web interface documentation
-```
-
-## 🛠️ Prerequisites
-
-### Required Software
-
-- **Python 3.10+** (tested with Python 3.13)
-- **Internet Connection** for fetching news and AI processing
-
-### Required Python Packages
-
-```bash
-pip install requests feedparser beautifulsoup4 google-generativeai python-dotenv
-```
-
-### API Requirements
-
-- **Google Gemini API Key** (free tier available)
-- Get your key from: https://makersuite.google.com/app/apikey
-
-## 🚀 Quick Start
-
-### 1. Clone and Setup
-
-```powershell
-cd e:\Viscode\Demo_Skola
-```
-
-### 2. Configure Environment
-
-Create `.env` file:
-
-```env
-GEMINI_API_KEY=your_actual_api_key_here
-```
-
-### 3. Install Dependencies
-
-```powershell
-pip install requests feedparser beautifulsoup4 google-generativeai python-dotenv
-```
-
-### 4. Run the Application
-
-```powershell
-# Start the web server
-py -3.13 serve_website.py
-
-# Open browser to: http://localhost:8000
-```
-
-## 📖 Usage Guide
-
-### 🌐 Web Interface
-
-1. **Open Website**: Navigate to `http://localhost:8000`
-2. **Browse News**: Scroll through AI-summarized tech news
-3. **Search**: Use search bar to find specific topics
-4. **Filter**: Filter by news type (news, announcements, etc.)
-5. **Refresh**: Click floating refresh button (top-left) for new data
-
-### 🔄 Data Updates
-
-#### Automatic Refresh (Recommended)
-
-- Click the **floating refresh button** in top-left corner
-- Watch real-time progress messages
-- System fetches fresh data from Techmeme
-- AI processes and summarizes content
-- UI updates automatically
-
-#### Manual Update
-
-```powershell
-# Full AI-powered update
-py -3.13 update_news.py
-
-# Quick update without AI
-py -3.13 simple_update.py
-
-# Test refresh functionality
-py -3.13 quick_refresh.py
-```
-
-### 🧪 Testing & Development
-
-```powershell
-# Test Techmeme data fetching
-py -3.13 test_techmeme.py
-
-# Test integration
-py -3.13 test_integration.py
-
-# Quick functionality test
-py -3.13 test_quick.py
-```
-
-## 🎨 Web Interface Features
-
-### 🔄 Floating Refresh Button
-
-- **Location**: Top-left corner
-- **States**:
-  - 🔵 Normal: Blue gradient with pulse effect
-  - 🟡 Loading: Gray with spinning icon
-  - 🟢 Success: Green with checkmark
-  - 🔴 Error: Red with warning icon
-- **Progress**: Real-time status messages during refresh
-
-### 📱 Responsive Design
-
-- **Desktop**: Full-width layout with sidebar stats
-- **Tablet**: Adapted columns and navigation
-- **Mobile**: Stack layout with optimized touch targets
-
-### 🎯 Interactive Elements
-
-- **Search**: Real-time filtering as you type
-- **Hover Effects**: Smooth transitions and highlights
-- **Loading Overlay**: Backdrop blur with progress indicators
-- **Animations**: CSS keyframes for smooth UX
-
-## 🤖 AI Integration
-
-### Gemini 2.0 Flash Model
-
-- **Purpose**: Summarize news articles into bullet points
-- **Input**: Raw news content from Techmeme
-- **Output**: Structured summaries with key insights
-- **Features**:
-  - Bullet point extraction
-  - "Why it matters" analysis
-  - Key command identification
-  - Caveat highlighting
-
-### Data Processing Pipeline
-
-1. **Fetch**: Get latest news from Techmeme RSS
-2. **Parse**: Extract URLs, titles, and content
-3. **Enrich**: Fetch additional metadata from source articles
-4. **Summarize**: Process with Gemini AI
-5. **Format**: Structure into JSON for web display
-6. **Store**: Save to `summaries.json`
-
-## 🔧 API Endpoints
-
-### Server API
-
-- `GET /` → Redirects to `/news.html`
-- `GET /news.html` → Main web interface
-- `GET /summaries.json` → Current news data
-- `GET /api/refresh` → Start data refresh process
-- `GET /api/refresh/status` → Check refresh progress
-
-### Refresh Process
-
-1. **Start**: `POST /api/refresh`
-2. **Monitor**: `GET /api/refresh/status` (polls every 5s)
-3. **Complete**: Status shows `completed: true`
-4. **Update**: Frontend fetches new `summaries.json`
-
-## 📊 Data Format
-
-### News Item Structure
-
-```json
-{
-  "title": "OpenAI announces GPT-5 with breakthrough capabilities",
-  "url": "https://example.com/article",
-  "bullets": [
-    "OpenAI releases GPT-5 with 10x improvement over GPT-4",
-    "New model shows advanced reasoning and multimodal abilities",
-    "Available to ChatGPT Plus subscribers starting next month"
-  ],
-  "why_it_matters": "This represents a significant leap in AI capabilities...",
-  "type": "news",
-  "key_commands": ["openai", "gpt-5", "ai"],
-  "caveats": [
-    "Limited initial availability",
-    "Higher computational requirements"
-  ]
-}
-```
-
-### Summary File Structure
-
-```json
-{
-  "items": [
-    /* array of news items */
-  ],
-  "last_updated": "2025-10-09T12:00:00Z",
-  "total_items": 15,
-  "metadata": {
-    "source": "techmeme",
-    "processed_with": "gemini-2.0-flash",
-    "version": "1.0"
-  }
-}
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### Python Environment
-
-```powershell
-# If python command fails, use py launcher
-py -3.13 serve_website.py
-
-# Check Python installation
-py --list
-```
-
-#### Missing Dependencies
-
-```powershell
-# Install missing packages
-pip install google-generativeai python-dotenv
-
-# Or install all at once
-pip install -r requirements.txt
-```
-
-#### API Key Issues
-
-1. Verify `.env` file exists and contains correct key
-2. Test API key: `py -3.13 test_integration.py`
-3. Check Gemini API quota and billing
-
-#### Port Conflicts
-
-```powershell
-# Kill existing Python processes
-Get-Process | Where-Object {$_.ProcessName -eq "python"} | Stop-Process -Force
-
-# Or use different port in serve_website.py
-```
-
-### Debugging Features
-
-- **Console Logs**: Open browser DevTools → Console
-- **Server Logs**: Check terminal output
-- **Network Tab**: Monitor API calls in DevTools
-- **Error Messages**: Detailed error reporting in UI
-
-## 🔒 Security Notes
-
-- **API Keys**: Never commit `.env` to version control
-- **CORS**: Server allows localhost connections only
-- **Input Validation**: Server validates all API inputs
-- **Rate Limiting**: Gemini API has built-in rate limits
-
-## 🚀 Performance Optimization
-
-### Caching Strategy
-
-- **Browser Cache**: Static assets cached for 1 hour
-- **Data Cache**: News data cached until refresh
-- **API Cache**: Gemini responses cached per content hash
-
-### Resource Management
-
-- **Memory**: Efficient JSON parsing and storage
-- **Network**: Batch API calls where possible
-- **CPU**: Background processing for AI tasks
-
-## 📈 Future Enhancements
-
-### Planned Features
-
-- [ ] Multiple news source integration
-- [ ] User customization preferences
-- [ ] Dark/light theme toggle
-- [ ] Email/notification alerts
-- [ ] Historical data archive
-- [ ] Advanced analytics dashboard
-
-### Technical Improvements
-
-- [ ] Redis caching layer
-- [ ] Docker containerization
-- [ ] CI/CD pipeline setup
-- [ ] Automated testing suite
-- [ ] Performance monitoring
-
-## 📄 License
-
-This project is for educational and personal use. Please respect Techmeme's terms of service and API rate limits.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -am 'Add feature'`
-4. Push to branch: `git push origin feature-name`
-5. Submit pull request
-
-## 📞 Support
-
-For issues and questions:
-
-1. Check existing documentation in `/docs/` folder
-2. Review troubleshooting section above
-3. Create GitHub issue with detailed description
+An AI powered news aggregation project that monitors Techmeme, summarises the latest headlines with Google Gemini, and serves the results in a modern web interface.
 
 ---
 
-**Last Updated**: October 9, 2025
-**Version**: 2.0.0
-**Status**: ✅ Production Ready
+## Table of Contents
+
+1. [Highlights](#highlights)  
+2. [Repository Layout](#repository-layout)  
+3. [Prerequisites](#prerequisites)  
+4. [Quick Start](#quick-start)  
+5. [Updating the Data](#updating-the-data)  
+6. [Configuration](#configuration)  
+7. [Available Scripts](#available-scripts)  
+8. [FastAPI Endpoints](#fastapi-endpoints)  
+9. [Troubleshooting](#troubleshooting)  
+10. [Next Steps & Contributions](#next-steps--contributions)
+
+---
+
+## Highlights
+
+- Real-time Techmeme feed ingestion with resilient HTTP retry logic.  
+- AI summarisation powered by Google Gemini (configurable model + batching).  
+- FastAPI backend that serves static assets and exposes `/api/refresh` endpoints.  
+- Responsive frontend with live refresh button, search, filters, and statistics.  
+- Utility scripts for full AI refresh, quick non-AI updates, and smoke tests.  
+- Configuration centralised through `src/config/settings.py` (dotenv ready).
+
+---
+
+## Repository Layout
+
+```
+e:\Viscode\Demo_Skola/
+├── README.md                     # Project documentation (this file)
+├── .env                          # Local environment variables (not committed)
+├── news.html                     # Frontend entry point
+├── styles.css                    # Global styling
+├── js/                           # Frontend logic & utilities
+│   ├── main.js                   # Bootstrap & UI orchestration
+│   └── services/newsService.js   # Fetch + refresh helpers
+├── summaries.json                # Data consumed by the frontend
+├── start_fastapi.bat             # Helper to launch the API server
+├── quick_start.bat               # Windows quick-start convenience script
+├── update_news.py                # Full AI update pipeline CLI
+├── simple_update.py              # Lightweight refresh without AI
+├── quick_refresh.py              # Smoke test (touch timestamp only)
+├── requirements.txt              # Python dependency set
+├── src/
+│   ├── api/app.py                # FastAPI application
+│   ├── clients/gemini.py         # Google Gemini wrapper
+│   ├── config/settings.py        # Settings dataclasses & `.env` loading
+│   ├── domain/models.py          # Core datamodels (FeedArticle, SummaryResult, …)
+│   ├── feeds/techmeme.py         # Legacy helper CLI for Techmeme
+│   ├── feeds/techmeme/client.py  # Production Techmeme feed client
+│   ├── pipelines/news_pipeline.py# Orchestrated fetch → summarise → persist flow
+│   └── services/                 # Feed, storage, and summarisation services
+└── docs/                         # Additional documentation
+```
+
+---
+
+## Prerequisites
+
+- **Python**: 3.10 or newer (project tested on 3.13).  
+- **Google Gemini API key** (free tier available).  
+- Optional: PowerShell on Windows for `.bat` helpers.
+
+---
+
+## Quick Start
+
+1. **Clone and enter the project directory**
+   ```powershell
+   git clone <repo> e:\Viscode\Demo_Skola
+   cd e:\Viscode\Demo_Skola
+   ```
+
+2. **Create and populate `.env`**
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   # Optional overrides:
+   # GEMINI_MODEL=gemini-2.0-flash
+   # TECHMEME_FEED_URL=https://www.techmeme.com/feed.xml
+   ```
+
+3. **Create a virtual environment (recommended)**
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+4. **Install dependencies**
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+5. **Generate initial data** (ensures `summaries.json` exists)
+   ```powershell
+   py -3.13 update_news.py --top 25
+   ```
+
+6. **Start the FastAPI server**
+   ```powershell
+   start_fastapi.bat
+   # or
+   uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+   ```
+
+7. **Open the site**  
+   Navigate to `http://localhost:8000` to browse the latest summaries.
+
+---
+
+## Updating the Data
+
+| Command | Description |
+| ------- | ----------- |
+| `py -3.13 update_news.py --top 25` | Full pipeline: fetch feed, summarise with Gemini, copy to `summaries.json`. |
+| `py -3.13 simple_update.py --limit 15` | Fast, non-AI refresh useful for demos or when the API key is unavailable. |
+| `py -3.13 quick_refresh.py` | Touches `summaries.json` (updates timestamp/first title) for smoke testing. |
+| Frontend refresh button | Calls `/api/refresh`, triggers `update_news.py` asynchronously, and polls `/api/refresh/status`. |
+
+**Tip:** The FastAPI server automatically serves the latest `summaries.json`, so refreshing the browser (or clicking the floating refresh button) updates the UI after any of the commands above complete.
+
+---
+
+## Configuration
+
+All configuration flows through `src/config/settings.py`. Important keys:
+
+| Environment Variable | Description | Default |
+| -------------------- | ----------- | ------- |
+| `GEMINI_API_KEY`     | Required for AI summaries. | none (raises error when missing) |
+| `GEMINI_MODEL`       | Gemini model name. | `gemini-2.5-flash` |
+| `GEMINI_MAX_RETRIES` | Retry attempts when Gemini API fails. | `3` |
+| `GEMINI_BATCH_SIZE`  | Number of articles grouped per prompt. | `6` |
+| `TECHMEME_FEED_URL`  | RSS source URL. | `https://www.techmeme.com/feed.xml` |
+| `TECHMEME_TIMEOUT`   | HTTP timeout in seconds. | `12` |
+| `CRAWLER_UA`         | User-Agent string used for feed requests. | TechHubBot |
+| `SUMMARY_OUTPUT_PATH`| Where the pipeline writes its JSON before copying to project root. | `data/outputs/summaries.json` |
+| `SUMMARY_PROMPT_TEMPLATE` | Custom prompt template (optional). | default multi-line prompt |
+
+Settings load values from the environment, falling back to defaults. `.env` is read automatically for local development.
+
+---
+
+## Available Scripts
+
+| Script | Purpose |
+| ------ | ------- |
+| `start_fastapi.bat` | Activates `.venv` (if present) and runs FastAPI with uvicorn. |
+| `quick_start.bat`   | Performs safety checks and launches the server + browser. |
+| `update_news.py`    | Main CLI for the AI-powered refresh workflow. |
+| `simple_update.py`  | Lightweight refresh that skips the AI step. |
+| `quick_refresh.py`  | Smoke test utility to keep UI feedback working. |
+| `src/feeds/techmeme.py` | Diagnostic CLI for fetching and optionally enriching Techmeme entries. |
+
+---
+
+## FastAPI Endpoints
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| `GET`  | `/`                  | Redirects to `news.html`. |
+| `GET`  | `/news.html`         | Serves the frontend. |
+| `GET`  | `/styles.css`        | Stylesheet. |
+| `GET`  | `/js/...`            | JavaScript modules. |
+| `GET`  | `/summaries.json`    | Latest summaries for the UI. |
+| `GET`  | `/api/refresh`       | Kick off background refresh (`update_news.py`). Returns immediate status. |
+| `GET`  | `/api/refresh/status`| Poll job status (started, completed, succeeded, output/error). |
+| `GET`  | `/healthz`           | Simple health probe. |
+
+Static directories (`/public`, `/styles`, `/js`) are mounted automatically when present.
+
+---
+
+## Troubleshooting
+
+| Problem | Possible Fix |
+| ------- | ------------ |
+| `ValueError: GEMINI_API_KEY is required` | Ensure `.env` is populated and the variable is exported before running commands. |
+| `summaries.json` missing | Run `py -3.13 update_news.py --top 25` or copy `data\outputs\summaries.json` into the project root. |
+| Port 8000 already in use | Stop the conflicting process (`Get-Process python | Stop-Process -Force`) or launch with `--port 8001`. |
+| Gemini failures / timeouts | Check internet connection, API quota, or adjust `GEMINI_MAX_RETRIES` & `GEMINI_BATCH_SIZE`. |
+| Refresh button spins forever | Inspect FastAPI logs; verify `update_news.py` runs without errors (missing key, network issues, etc.). |
+| Non-UTF8 artefacts in console | Everything in the codebase is now ASCII-only. If issues persist, ensure the terminal encoding is `utf-8`. |
+
+---
+
+## Next Steps & Contributions
+
+- Explore the `docs/` directory for step-by-step run guides and refresh flow write-ups.  
+- Extend the pipeline with additional sources (e.g. Hacker News, RSS feeds) by implementing new feed clients.  
+- Add automated tests (e.g. pytest + FastAPI TestClient) to validate endpoints and services.  
+- Containerise the stack (uvicorn + static files) or integrate with a task queue (Celery/Arq) for production refresh jobs.  
+- Contributions are welcome—submit a PR with clear descriptions and test notes.
+
+---
+
+**Status**: Active development. For questions or ideas, open an issue or reach out to the maintainer.

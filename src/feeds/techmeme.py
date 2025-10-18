@@ -45,7 +45,7 @@ def fetch_feed(session: requests.Session, url: Optional[str] = None) -> feedpars
 def main() -> None:
    
 
-    parser = argparse.ArgumentParser(description="Fetch Techmeme RSS → JSON (with optional enrich).")
+    parser = argparse.ArgumentParser(description="Fetch Techmeme RSS and store it as JSON (optional enrichment).")
     parser.add_argument("--feed", default=settings.feed.url, help="RSS URL (default: Techmeme)")
     parser.add_argument("--enrich", type=int, default=5, help="Enrich top N items (0 = skip)")
     parser.add_argument("--out", default=str(DEFAULT_OUTPUT_PATH), help="Output JSON path")
@@ -66,7 +66,7 @@ def main() -> None:
             except requests.RequestException:
                 item["meta"] = {}
 
-        print(f"Tổng số item: {len(items)}")
+        print(f"Total items: {len(items)}")
         for entry in items[:5]:
             print("-" * 60)
             print("TITLE        :", entry.get("title"))
@@ -85,10 +85,10 @@ def main() -> None:
         payload = items[:20]
         with open(args.out, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
-        print("Đã ghi:", args.out)
+        print(f"Wrote output to: {args.out}")
 
     except requests.RequestException as exc:
-        print("Lỗi mạng/SSL:", exc)
+        print(f"Network or SSL error: {exc}")
 
 
 if __name__ == "__main__":

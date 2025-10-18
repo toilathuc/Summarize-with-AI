@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -17,6 +19,15 @@ if str(ROOT_DIR) not in sys.path:
 
 from src.pipelines.news_pipeline import NewsPipeline
 from src.services.storage_service import StorageService
+
+LOG_FORMAT = "%(asctime)s %(levelname)s [%(message)s)"
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+logger = logging.getLogger("update_news")
+
+# read correlation id from env if present
+CORRELATION_ID = os.environ.get("X_CORRELATION_ID")
+if CORRELATION_ID:
+    logger = logging.LoggerAdapter(logger, {"correlation_id": CORRELATION_ID})
 
 PUBLIC_SUMMARIES = ROOT_DIR / "summaries.json"
 

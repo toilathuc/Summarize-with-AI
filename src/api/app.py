@@ -3,20 +3,40 @@
 from __future__ import annotations
 
 import logging
+import os
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-LOGGER = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+from src.middlewares.correlation import (
+    CorrelationIdMiddleware,
+    get_current_correlation_id,
+    set_current_correlation_id,
+)
+
+LOGGER = logging.getLogger("tech_news_app")
+
+
+class _CorrelationFilter(logging.Filter):
+    """Attach the current correlation id to log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.correlation_id = get_current_correlation_id() or "-"
+        return True
+
+
+LOG_FORMAT = "%(asctime)s %(levelname)s [%(correlation_id)s] %(name)s: %(message)s"
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
+logging.getLogger().addFilter(_CorrelationFilter())
+LOGGER.addFilter(_CorrelationFilter())
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 NEWS_FILE = ROOT_DIR / "news.html"
@@ -31,6 +51,9 @@ app = FastAPI(
     description="Serve static assets and provide refresh endpoints.",
     version="1.0.0",
 )
+
+# Install correlation middleware first so downstream middleware/handlers see the id.
+app.add_middleware(CorrelationIdMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,20 +78,29 @@ refresh_status: RefreshStatus = {
     "output": "",
     "error": "",
     "finished_at": None,
+    "correlation_id": None,
 }
 refresh_lock = threading.Lock()
 
 
-def _run_update_job(job_started_at: float) -> None:
+def _run_update_job(job_started_at: float, correlation_id: Optional[str]) -> None:
     """Invoke update_news.py and capture status for polling."""
-    LOGGER.info("Starting refresh job at %.3f", job_started_at)
+    # Set correlation id for this background thread context
+    set_current_correlation_id(correlation_id)
+    LOGGER.info("Starting refresh job at %.3f (correlation=%s)", job_started_at, correlation_id or "-")
+    
     try:
+        env = os.environ.copy()
+        if correlation_id:
+            env["X_CORRELATION_ID"] = correlation_id
+
         result = subprocess.run(
             [sys.executable, "update_news.py"],
             capture_output=True,
             text=True,
             cwd=str(ROOT_DIR),
             timeout=900,
+            env=env,
         )
         success = result.returncode == 0
         output = result.stdout
@@ -86,6 +118,9 @@ def _run_update_job(job_started_at: float) -> None:
         output = ""
         error = str(exc)
         LOGGER.exception("Refresh job failed")
+    finally:
+        # Clear correlation id after job completes
+        set_current_correlation_id(None)
 
     with refresh_lock:
         refresh_status.update(
@@ -96,6 +131,7 @@ def _run_update_job(job_started_at: float) -> None:
                 "error": error,
                 "output": output,
                 "finished_at": time.time(),
+                "correlation_id": correlation_id,
             }
         )
 
@@ -133,6 +169,7 @@ async def trigger_refresh(background_tasks: BackgroundTasks) -> JSONResponse:
             raise HTTPException(status_code=409, detail="Refresh already in progress")
 
         started_at = time.time()
+        correlation_id = get_current_correlation_id()
         refresh_status.update(
             {
                 "started": True,
@@ -142,15 +179,17 @@ async def trigger_refresh(background_tasks: BackgroundTasks) -> JSONResponse:
                 "output": "",
                 "error": "",
                 "finished_at": None,
+                "correlation_id": correlation_id,
             }
         )
 
-    background_tasks.add_task(_run_update_job, started_at)
+    background_tasks.add_task(_run_update_job, started_at, correlation_id)
     return JSONResponse(
         {
             "status": "started",
             "message": "Data refresh started in background",
             "timestamp": refresh_status["timestamp"],
+            "correlation_id": correlation_id,
         }
     )
 

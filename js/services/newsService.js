@@ -1,9 +1,41 @@
 import { delay } from "../utils/delay.js";
 
 const SUMMARY_PATH = "./summaries.json";
+const SUMMARIES_API = "/api/summaries"; // New fast endpoint
 const REFRESH_ENDPOINT = "/api/refresh";
 const REFRESH_STATUS_ENDPOINT = "/api/refresh/status";
 
+/**
+ * Fast refresh - reload data from file without triggering backend update.
+ * Returns in <1 second with freshness metadata.
+ */
+export async function refreshNewsFast() {
+  try {
+    const response = await fetch(SUMMARIES_API);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      items: Array.isArray(data.items) ? data.items : [],
+      lastUpdated: data.last_updated,
+      isStale: data.is_stale,
+      freshness: data.freshness,
+      count: data.count,
+      correlationId: data.correlation_id,
+    };
+  } catch (error) {
+    console.error("Fast refresh error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Legacy fetch from static file - kept for compatibility.
+ */
 export async function fetchNewsData({ cacheBust = false } = {}) {
   const url = cacheBust ? `${SUMMARY_PATH}?t=${Date.now()}` : SUMMARY_PATH;
 
@@ -20,61 +52,93 @@ export async function fetchNewsData({ cacheBust = false } = {}) {
   };
 }
 
-export async function refreshNews({
+/**
+ * Trigger full backend update - fetches from Techmeme + AI summarization.
+ * This is slow (30-90 seconds) and should only be used when user explicitly
+ * requests fresh data from the source.
+ */
+export async function triggerBackendUpdate({
   onProgress,
-  pollInterval = 5000,
-  maxAttempts = 60,
+  pollInterval = 2000,
+  maxAttempts = 120,
   minDuration = 2000,
 } = {}) {
   const startTime = Date.now();
 
-  onProgress?.("Đang kết nối với server...");
+  try {
+    onProgress?.("Đang kết nối với server...");
 
-  const refreshResponse = await fetch(REFRESH_ENDPOINT);
-  const refreshResult = await refreshResponse.json().catch(() => ({}));
+    const refreshResponse = await fetch(REFRESH_ENDPOINT, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
-  if (!refreshResponse.ok) {
-    const message =
-      (refreshResult && refreshResult.message) || "Failed to start refresh";
-    throw new Error(message);
-  }
-
-  onProgress?.("Đang lấy dữ liệu mới từ Techmeme...");
-
-  let attempts = 0;
-  let status = null;
-
-  while (attempts < maxAttempts) {
-    await delay(pollInterval);
-    attempts += 1;
-
-    try {
-      const statusResponse = await fetch(REFRESH_STATUS_ENDPOINT);
-      if (!statusResponse.ok) {
-        continue;
-      }
-
-      status = await statusResponse.json();
-
-      if (status.completed) {
-        break;
-      }
-
-      onProgress?.(getProgressMessage(attempts));
-    } catch {
-      // Ignore transient polling errors and keep trying
+    if (!refreshResponse.ok) {
+      const refreshResult = await refreshResponse.json().catch(() => ({}));
+      const message =
+        refreshResult?.detail ||
+        refreshResult?.message ||
+        `Server error: ${refreshResponse.status}`;
+      throw new Error(message);
     }
-  }
 
-  if (!status || !status.completed) {
-    throw new Error("Refresh timeout - taking too long");
-  }
+    const refreshResult = await refreshResponse.json();
+    console.log("Refresh started:", refreshResult);
 
-  if (!status.success) {
-    const error = new Error("Refresh failed on server");
-    if (status.error) {
+    onProgress?.("Đang lấy dữ liệu mới từ Techmeme...");
+
+    let attempts = 0;
+    let status = null;
+
+    while (attempts < maxAttempts) {
+      await delay(pollInterval);
+      attempts += 1;
+
+      try {
+        const statusResponse = await fetch(REFRESH_STATUS_ENDPOINT);
+        if (!statusResponse.ok) {
+          console.warn(`Status check failed: ${statusResponse.status}`);
+          continue;
+        }
+
+        status = await statusResponse.json();
+        console.log(`Status check (attempt ${attempts}):`, status);
+
+        // Check if job completed (either success or failure)
+        if (status && status.completed === true) {
+          console.log("Job completed:", status);
+          break;
+        }
+
+        // Update progress message
+        onProgress?.(getProgressMessage(attempts));
+      } catch (error) {
+        console.warn(`Status polling error (attempt ${attempts}):`, error);
+        // Ignore transient polling errors and keep trying
+      }
+    }
+
+    // Validate final status
+    if (!status) {
+      throw new Error("Không thể lấy trạng thái cập nhật từ server");
+    }
+
+    if (!status.completed) {
+      throw new Error(
+        "Quá trình cập nhật mất quá nhiều thời gian. Vui lòng thử lại sau."
+      );
+    }
+
+    if (!status.success) {
+      const errorMsg = status.error || "Cập nhật thất bại trên server";
+      const error = new Error(errorMsg);
       error.detail = status.error;
+      throw error;
     }
+  } catch (error) {
+    console.error("Refresh error:", error);
     throw error;
   }
 
@@ -89,6 +153,14 @@ export async function refreshNews({
   }
 
   return { data, status };
+}
+
+/**
+ * Backward compatibility alias - calls the slow backend update.
+ * Use refreshNewsFast() for instant UI refresh instead.
+ */
+export async function refreshNews(options) {
+  return triggerBackendUpdate(options);
 }
 
 function getProgressMessage(attempt) {

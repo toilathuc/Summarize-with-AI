@@ -9,7 +9,7 @@ echo.
 
 REM Chạy script Python cập nhật
 echo [1/2] Dang lay du lieu moi tu Techmeme...
-C:/Users/ADMIN/AppData/Local/Programs/Python/Python313/python.exe update_news.py
+E:\Viscode\Demo_Skola\.venv\Scripts\python.exe update_news.py
 
 REM Kiểm tra kết quả
 if %ERRORLEVEL% EQU 0 (

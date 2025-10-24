@@ -13,14 +13,18 @@ from pathlib import Path
 from typing import Any
 
 # Ensure the project root (containing `src/`) is importable when executing directly.
-ROOT_DIR = Path(__file__).resolve().parent
-if str(ROOT_DIR) not in sys.path:
+ROOT_DIR = Path(__file__).resolve().parent # Assuming update_news.py is in the project root
+if str(ROOT_DIR) not in sys.path: # check if root dir is in sys.path 
+    # If not, add it
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.pipelines.news_pipeline import NewsPipeline
 from src.services.storage_service import StorageService
 
-LOG_FORMAT = "%(asctime)s %(levelname)s [%(message)s)"
+# Log_format is important for structured logging
+# example detail:
+# 
+LOG_FORMAT = "%(asctime)s %(levelname)s [%(message)s]"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 logger = logging.getLogger("update_news")
 

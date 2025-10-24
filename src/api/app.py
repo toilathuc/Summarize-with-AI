@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -41,7 +43,7 @@ LOGGER.addFilter(_CorrelationFilter())
 ROOT_DIR = Path(__file__).resolve().parents[2]
 NEWS_FILE = ROOT_DIR / "news.html"
 STYLES_FILE = ROOT_DIR / "styles.css"
-SUMMARY_FILE = ROOT_DIR / "summaries.json"
+SUMMARY_FILE = ROOT_DIR / "data" / "outputs" / "summaries.json"
 JS_DIR = ROOT_DIR / "js"
 PUBLIC_DIR = ROOT_DIR / "public"
 STYLES_DIR = ROOT_DIR / "styles"
@@ -82,6 +84,65 @@ refresh_status: RefreshStatus = {
 }
 refresh_lock = threading.Lock()
 
+
+# ==================== HELPER FUNCTIONS ====================
+
+def check_if_stale(last_updated_str: str | None, threshold_minutes: int = 60) -> bool:
+    """
+    Check if data is stale (older than threshold).
+    
+    Args:
+        last_updated_str: ISO format timestamp string
+        threshold_minutes: Age threshold in minutes (default: 60)
+    
+    Returns:
+        True if data is stale or timestamp invalid
+    """
+    if not last_updated_str:
+        return True
+    
+    try:
+        last_updated = datetime.fromisoformat(last_updated_str.replace('Z', '+00:00'))
+        age = datetime.now(last_updated.tzinfo) - last_updated
+        return age > timedelta(minutes=threshold_minutes)
+    except (ValueError, AttributeError):
+        return True
+
+
+def calculate_age(last_updated_str: str | None) -> str:
+    """
+    Calculate human-readable age of data.
+    
+    Args:
+        last_updated_str: ISO format timestamp string
+    
+    Returns:
+        Human-readable string like "5 phút trước", "2 giờ trước"
+    """
+    if not last_updated_str:
+        return "không rõ"
+    
+    try:
+        last_updated = datetime.fromisoformat(last_updated_str.replace('Z', '+00:00'))
+        age = datetime.now(last_updated.tzinfo) - last_updated
+        seconds = age.total_seconds()
+        
+        if seconds < 60:
+            return "vừa xong"
+        elif seconds < 3600:
+            minutes = int(seconds / 60)
+            return f"{minutes} phút trước"
+        elif seconds < 86400:
+            hours = int(seconds / 3600)
+            return f"{hours} giờ trước"
+        else:
+            days = int(seconds / 86400)
+            return f"{days} ngày trước"
+    except (ValueError, AttributeError):
+        return "không rõ"
+
+
+# ==================== BACKGROUND JOB ====================
 
 def _run_update_job(job_started_at: float, correlation_id: Optional[str]) -> None:
     """Invoke update_news.py and capture status for polling."""
@@ -160,6 +221,56 @@ async def serve_summaries() -> FileResponse:
     if not SUMMARY_FILE.exists():
         raise HTTPException(status_code=404, detail="summaries.json not found")
     return FileResponse(SUMMARY_FILE, media_type="application/json")
+
+
+@app.get("/api/summaries")
+async def get_summaries_fast() -> JSONResponse:
+    """
+    Fast endpoint - reload data from file without triggering update.
+    Returns data with freshness metadata.
+    """
+    correlation_id = get_current_correlation_id()
+    
+    # Read summaries.json
+    if not SUMMARY_FILE.exists():
+        raise HTTPException(
+            status_code=404, 
+            detail="No data available. Please trigger a refresh first."
+        )
+    
+    try:
+        with open(SUMMARY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as exc:
+        LOGGER.error("Failed to parse summaries.json: %s", exc)
+        raise HTTPException(status_code=500, detail="Data file is corrupted")
+    
+    # Extract last_updated timestamp
+    last_updated = data.get("last_updated")
+    
+    # Calculate freshness
+    is_stale = check_if_stale(last_updated, threshold_minutes=60)
+    freshness = calculate_age(last_updated)
+    
+    LOGGER.info(
+        "Fast reload: items=%d, last_updated=%s, is_stale=%s, freshness=%s",
+        len(data.get("items", [])),
+        last_updated,
+        is_stale,
+        freshness,
+    )
+    
+    # Return data with metadata
+    return JSONResponse(
+        {
+            "items": data.get("items", []),
+            "last_updated": last_updated,
+            "is_stale": is_stale,
+            "freshness": freshness,
+            "count": len(data.get("items", [])),
+            "correlation_id": correlation_id,
+        }
+    )
 
 
 @app.get("/api/refresh", response_model=None)

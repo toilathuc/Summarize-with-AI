@@ -1,4 +1,8 @@
-import { fetchNewsData, refreshNews } from "./services/newsService.js";
+import {
+  fetchNewsData,
+  refreshNewsFast,
+  triggerBackendUpdate,
+} from "./services/newsService.js";
 import { applyFilters } from "./filters.js";
 import { renderNews } from "./ui/render.js";
 import { updateStats, updateLastUpdated } from "./ui/stats.js";
@@ -8,10 +12,7 @@ import {
   showLoadingOverlay,
   showError,
 } from "./ui/feedback.js";
-import {
-  showRefreshSuccess,
-  showRefreshError,
-} from "./ui/notifications.js";
+import { showRefreshSuccess, showRefreshError } from "./ui/notifications.js";
 import { debounce } from "./utils/debounce.js";
 import { initScrollToTop } from "./ui/scroll.js";
 import { initKeyboardShortcuts } from "./ui/keyboard.js";
@@ -26,9 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const elements = getDomElements();
 
   initScrollToTop();
-  initKeyboardShortcuts(elements.searchInput, () =>
-    handleSearch(elements),
-  );
+  initKeyboardShortcuts(elements.searchInput, () => handleSearch(elements));
 
   setupEventListeners(elements);
   bootstrap(elements);
@@ -52,19 +51,19 @@ function setupEventListeners(elements) {
   if (elements.searchInput) {
     elements.searchInput.addEventListener(
       "input",
-      debounce(() => handleSearch(elements), 300),
+      debounce(() => handleSearch(elements), 300)
     );
   }
 
   if (elements.typeFilter) {
     elements.typeFilter.addEventListener("change", () =>
-      handleSearch(elements),
+      handleSearch(elements)
     );
   }
 
   if (elements.refreshBtn) {
     elements.refreshBtn.addEventListener("click", () =>
-      handleRefresh(elements),
+      handleRefresh(elements)
     );
   }
 }
@@ -83,7 +82,7 @@ async function bootstrap(elements) {
     state.filteredData = applyFilters(
       state.newsData,
       initialSearch,
-      initialType,
+      initialType
     );
 
     renderCurrentData(elements);
@@ -92,7 +91,7 @@ async function bootstrap(elements) {
     console.error("Error loading news data:", error);
     showError(
       elements.newsContainer,
-      "Không thể tải dữ liệu tin tức. Vui lòng thử lại sau.",
+      "Không thể tải dữ liệu tin tức. Vui lòng thử lại sau."
     );
   } finally {
     showLoading(elements.loadingElement, elements.newsContainer, false);
@@ -103,11 +102,7 @@ function handleSearch(elements) {
   const searchTerm = elements.searchInput?.value || "";
   const typeValue = elements.typeFilter?.value || "";
 
-  state.filteredData = applyFilters(
-    state.newsData,
-    searchTerm,
-    typeValue,
-  );
+  state.filteredData = applyFilters(state.newsData, searchTerm, typeValue);
 
   renderCurrentData(elements);
 }
@@ -115,42 +110,51 @@ function handleSearch(elements) {
 async function handleRefresh(elements) {
   const { refreshBtn, loadingOverlay } = elements;
   if (!refreshBtn) {
+    console.error("Refresh button not found");
     return;
   }
 
   const icon = refreshBtn.querySelector(".refresh-icon");
 
-  showLoadingOverlay(
-    loadingOverlay,
-    true,
-    "Đang khởi tạo cập nhật dữ liệu...",
-  );
+  // Prevent multiple simultaneous refreshes
+  if (refreshBtn.disabled) {
+    console.warn("Refresh already in progress");
+    return;
+  }
+
+  showLoadingOverlay(loadingOverlay, true, "Đang tải dữ liệu mới...");
 
   refreshBtn.classList.add("loading");
   refreshBtn.disabled = true;
 
   try {
-    const { data } = await refreshNews({
-      onProgress: (message) =>
-        showLoadingOverlay(loadingOverlay, true, message),
+    console.log("Starting fast refresh...");
+
+    // Use fast refresh by default
+    const data = await refreshNewsFast();
+
+    console.log("Fast refresh completed:", {
+      items: data.items?.length,
+      freshness: data.freshness,
+      isStale: data.isStale,
     });
 
-    state.newsData = data.items;
+    // Update state
+    state.newsData = data.items || [];
     state.lastUpdated = data.lastUpdated;
 
+    // Apply current filters
     const searchTerm = elements.searchInput?.value || "";
     const typeValue = elements.typeFilter?.value || "";
-    state.filteredData = applyFilters(
-      state.newsData,
-      searchTerm,
-      typeValue,
-    );
+    state.filteredData = applyFilters(state.newsData, searchTerm, typeValue);
 
+    // Update UI
     renderCurrentData(elements);
     updateLastUpdated(elements.lastUpdatedElement, state.lastUpdated);
 
     showLoadingOverlay(loadingOverlay, false);
 
+    // Success animation
     refreshBtn.classList.remove("loading");
     refreshBtn.classList.add("success");
     if (icon) {
@@ -158,10 +162,23 @@ async function handleRefresh(elements) {
     }
 
     const totalItems = state.newsData.length;
-    showRefreshSuccess(
-      `Dữ liệu đã được cập nhật thành công! Tìm thấy ${totalItems} bài viết`,
-    );
+    let successMessage = `Đã tải lại ${totalItems} bài viết`;
 
+    // Show freshness info
+    if (data.freshness) {
+      successMessage += ` (cập nhật ${data.freshness})`;
+    }
+
+    // Add stale indicator if needed
+    if (data.isStale) {
+      successMessage += ` ⚠️`;
+    } else {
+      successMessage += ` ✅`;
+    }
+
+    showRefreshSuccess(successMessage);
+
+    // Reset button after 3 seconds
     setTimeout(() => {
       refreshBtn.classList.remove("success");
       if (icon) {
@@ -179,32 +196,118 @@ async function handleRefresh(elements) {
       icon.className = "fas fa-exclamation-triangle";
     }
 
-    let errorMessage = "Không thể cập nhật dữ liệu. ";
-    const message = (error && error.message) || "";
+    showRefreshError(
+      error.message || "Không thể cập nhật dữ liệu. Vui lòng thử lại sau."
+    );
 
-    if (message.includes("timeout")) {
-      errorMessage += "Quá trình cập nhật mất quá nhiều thời gian.";
-    } else if (message.includes("Failed to start")) {
-      errorMessage += "Không thể khởi tạo quá trình cập nhật.";
-    } else if (message.includes("failed on server")) {
-      errorMessage += "Lỗi xử lý dữ liệu trên server.";
-    } else {
-      errorMessage += "Vui lòng thử lại sau.";
-    }
-
-    if (error.detail) {
-      errorMessage += ` (${error.detail})`;
-    }
-
-    showRefreshError(errorMessage);
-
+    // Reset button after 5 seconds on error
     setTimeout(() => {
       refreshBtn.classList.remove("error");
       if (icon) {
         icon.className = "fas fa-sync-alt refresh-icon";
       }
       refreshBtn.disabled = false;
-    }, 4000);
+    }, 5000);
+  }
+}
+
+/**
+ * Handle full backend update - fetch from Techmeme + AI summarization.
+ * This is the slow path (30-90 seconds).
+ */
+async function handleFullUpdate() {
+  const elements = getElements();
+  const { refreshBtn, loadingOverlay } = elements;
+
+  if (!refreshBtn) {
+    console.error("Refresh button not found");
+    return;
+  }
+
+  const icon = refreshBtn.querySelector(".refresh-icon");
+
+  showLoadingOverlay(
+    loadingOverlay,
+    true,
+    "Đang lấy dữ liệu mới từ Techmeme..."
+  );
+
+  refreshBtn.classList.add("loading");
+  refreshBtn.disabled = true;
+
+  try {
+    console.log("Starting full backend update...");
+
+    const { data } = await triggerBackendUpdate({
+      onProgress: (message) => {
+        console.log("Progress:", message);
+        showLoadingOverlay(loadingOverlay, true, message);
+      },
+    });
+
+    console.log(
+      "Backend update completed, updating UI with",
+      data.items?.length,
+      "items"
+    );
+
+    // Update state
+    state.newsData = data.items || [];
+    state.lastUpdated = data.lastUpdated;
+
+    // Apply current filters
+    const searchTerm = elements.searchInput?.value || "";
+    const typeValue = elements.typeFilter?.value || "";
+    state.filteredData = applyFilters(state.newsData, searchTerm, typeValue);
+
+    // Update UI
+    renderCurrentData(elements);
+    updateLastUpdated(elements.lastUpdatedElement, state.lastUpdated);
+
+    showLoadingOverlay(loadingOverlay, false);
+
+    // Success animation
+    refreshBtn.classList.remove("loading");
+    refreshBtn.classList.add("success");
+    if (icon) {
+      icon.className = "fas fa-check";
+    }
+
+    const totalItems = state.newsData.length;
+    showRefreshSuccess(
+      `Dữ liệu mới đã được cập nhật! Tìm thấy ${totalItems} bài viết`
+    );
+
+    // Reset button after 3 seconds
+    setTimeout(() => {
+      refreshBtn.classList.remove("success");
+      if (icon) {
+        icon.className = "fas fa-sync-alt refresh-icon";
+      }
+      refreshBtn.disabled = false;
+    }, 3000);
+  } catch (error) {
+    console.error("Error in full update:", error);
+    showLoadingOverlay(loadingOverlay, false);
+
+    refreshBtn.classList.remove("loading");
+    refreshBtn.classList.add("error");
+    if (icon) {
+      icon.className = "fas fa-exclamation-triangle";
+    }
+
+    showRefreshError(
+      error.message || "Không thể cập nhật dữ liệu. Vui lòng thử lại sau."
+    );
+
+    // Reset button after 5 seconds on error
+    setTimeout(() => {
+      refreshBtn.classList.remove("error");
+      if (icon) {
+        icon.className = "fas fa-sync-alt refresh-icon";
+      }
+      refreshBtn.disabled = false;
+    }, 5000);
   }
 }
 

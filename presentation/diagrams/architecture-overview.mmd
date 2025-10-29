@@ -1,0 +1,105 @@
+# Architecture Overview - Kiến Trúc Tổng Quan
+
+```mermaid
+graph TB
+    subgraph "Client Side - Browser"
+        A[User] -->|Access| B[news.html]
+        B --> C[JavaScript - main.js]
+        C --> D[NewsService]
+        C --> E[UI Components]
+        E --> E1[Render]
+        E --> E2[Filters]
+        E --> E3[Keyboard]
+    end
+    
+    subgraph "Server Side - FastAPI"
+        F[FastAPI Server<br/>src/api/app.py]
+        F --> G[Endpoints]
+        G --> G1[GET /]
+        G --> G2[GET /api/summaries]
+        G --> G3[GET /healthz]
+    end
+    
+    subgraph "Data Layer"
+        H[(summaries.json<br/>data/outputs/)]
+    end
+    
+    subgraph "Update Pipeline - CLI"
+        I[update_news.py]
+        I --> J[NewsPipeline]
+        J --> K[Services]
+        K --> K1[FeedService]
+        K --> K2[SummarizationService]
+        K --> K3[StorageService]
+        
+        K1 --> L1[TechmemeClient]
+        K2 --> L2[GeminiClient]
+        K3 --> H
+    end
+    
+    subgraph "External Services"
+        M[Techmeme RSS<br/>techmeme.com/feed.xml]
+        N[Google Gemini API<br/>AI Summarization]
+    end
+    
+    D -->|HTTP GET| G2
+    G2 -->|Read JSON| H
+    G2 -->|JSON Response| D
+    
+    L1 -->|Fetch Feed| M
+    L2 -->|Summarize| N
+    
+    I -.->|Manual Run| A
+    
+    style A fill:#e1f5ff
+    style F fill:#fff3e0
+    style H fill:#f3e5f5
+    style I fill:#e8f5e9
+    style M fill:#fce4ec
+    style N fill:#fce4ec
+```
+
+---
+
+## Giải Thích Luồng Dữ Liệu
+
+### 1. Update Flow (Manual - CLI)
+```
+Admin chạy: python update_news.py --top 30
+    ↓
+NewsPipeline orchestrates:
+    ↓
+FeedService → TechmemeClient → Fetch RSS từ Techmeme
+    ↓
+SummarizationService → GeminiClient → AI tóm tắt
+    ↓
+StorageService → Ghi vào summaries.json
+```
+
+### 2. API Serving Flow (Automatic - Server)
+```
+User mở browser → localhost:8000
+    ↓
+FastAPI serve news.html
+    ↓
+JavaScript load → Call GET /api/summaries
+    ↓
+FastAPI đọc summaries.json (< 1s)
+    ↓
+Return JSON response
+    ↓
+JavaScript render UI (cards)
+```
+
+---
+
+## Các Layer
+
+| Layer | Thành Phần | Vai Trò |
+|-------|-----------|---------|
+| **Presentation** | news.html, JavaScript | Giao diện người dùng |
+| **API** | FastAPI endpoints | Serve data qua HTTP |
+| **Business Logic** | Services (Feed, Summarize, Storage) | Xử lý logic nghiệp vụ |
+| **Data Access** | StorageService, Clients | Đọc/ghi data |
+| **Storage** | JSON file | Lưu trữ data |
+| **External** | Techmeme, Gemini API | Dịch vụ bên ngoài |

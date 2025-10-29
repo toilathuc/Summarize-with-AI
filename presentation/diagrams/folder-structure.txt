@@ -1,0 +1,271 @@
+# Folder Structure - Cấu Trúc Thư Mục Chi Tiết
+
+```
+Demo_Skola/                              # Root project folder
+│
+├── 📁 src/                               # ⭐ Backend Python code (Core application)
+│   │
+│   ├── __init__.py                      # Package marker
+│   │
+│   ├── 📂 api/                          # FastAPI web server
+│   │   ├── __init__.py
+│   │   └── app.py                       # Main FastAPI application
+│   │                                    # Endpoints: /, /api/summaries, /healthz
+│   │
+│   ├── 📂 clients/                      # Tích hợp với external services
+│   │   ├── __init__.py
+│   │   └── gemini.py                    # Google Gemini AI client
+│   │                                    # Methods: summarize(content)
+│   │
+│   ├── 📂 config/                       # Configuration management
+│   │   ├── __init__.py
+│   │   └── settings.py                  # Load from .env (API keys, URLs)
+│   │
+│   ├── 📂 domain/                       # Domain models (data classes)
+│   │   ├── __init__.py
+│   │   └── models.py                    # Article, Summary classes
+│   │
+│   ├── 📂 feeds/                        # RSS/API feed clients
+│   │   ├── __init__.py
+│   │   ├── techmeme.py                  # (Legacy - phiên bản cũ)
+│   │   └── 📂 techmeme/
+│   │       ├── __init__.py
+│   │       └── client.py                # TechmemeClient (fetch RSS)
+│   │
+│   ├── 📂 middlewares/                  # FastAPI middlewares
+│   │   ├── __init__.py
+│   │   └── correlation.py               # Correlation ID middleware (tracing)
+│   │
+│   ├── 📂 pipelines/                    # Orchestration logic (workflow)
+│   │   ├── __init__.py
+│   │   ├── main_pipeline.py             # Base pipeline class
+│   │   └── news_pipeline.py             # NewsPipeline (Fetch→Summarize→Save)
+│   │
+│   ├── 📂 services/                     # Business logic layer
+│   │   ├── __init__.py
+│   │   ├── feed_service.py              # FeedService (lấy articles)
+│   │   ├── storage_service.py           # StorageService (save/load JSON)
+│   │   ├── summarization_service.py     # SummarizationService (AI tóm tắt)
+│   │   └── summarize_with_gemini.py     # (Helper - wrapper cho Gemini)
+│   │
+│   ├── 📂 tasks/                        # Background tasks (Celery - not used)
+│   │   └── celery_tasks.py
+│   │
+│   └── 📂 utils/                        # Helper functions
+│       ├── __init__.py
+│       ├── batching.py                  # Batch processing utilities
+│       └── json_tools.py                # JSON helpers (pretty print, v.v.)
+│
+├── 📁 js/                                # ⭐ Frontend JavaScript code
+│   │
+│   ├── main.js                          # Entry point (DOMContentLoaded)
+│   │                                    # Orchestrates: fetch data → render UI
+│   │
+│   ├── 📂 services/
+│   │   └── newsService.js               # API client (fetch /api/summaries)
+│   │
+│   ├── 📂 ui/                           # UI components
+│   │   ├── feedback.js                  # User feedback (notifications)
+│   │   ├── keyboard.js                  # Keyboard shortcuts (R = refresh)
+│   │   ├── notifications.js             # Toast notifications
+│   │   ├── render.js                    # Render news cards (HTML generation)
+│   │   ├── scroll.js                    # Scroll behavior
+│   │   └── stats.js                     # Statistics display
+│   │
+│   └── 📂 utils/
+│       ├── debounce.js                  # Debounce function (search input)
+│       ├── delay.js                     # Delay utility
+│       └── html.js                      # HTML sanitization
+│
+├── 📁 styles/                            # CSS styling
+│   ├── base.css                         # Base styles (reset, typography)
+│   ├── filters.css                      # Filter buttons styling
+│   ├── floating-refresh.css             # Floating refresh button
+│   ├── header.css                       # Header section
+│   ├── layout.css                       # Layout (grid, flexbox)
+│   ├── loading.css                      # Loading spinner
+│   ├── news-cards.css                   # News card styling (main content)
+│   ├── responsive.css                   # Mobile responsive
+│   └── utilities.css                    # Utility classes (.mt-1, .mb-2, v.v.)
+│
+├── 📁 public/                            # Static files
+│   └── index.html                       # (Alternative entry point - not used)
+│
+├── 📁 data/                              # ⭐ Data storage
+│   ├── 📂 outputs/
+│   │   └── summaries.json               # Main data file (15 articles)
+│   │                                    # Format: {last_updated, total_items, summaries[]}
+│   └── 📂 raw/
+│       └── techmeme_sample_full.json    # Sample raw data (for testing)
+│
+├── 📁 docs/                              # Documentation (kept files only)
+│   ├── ARCHITECTURE_DIAGRAMS.md         # Architecture diagrams & explanations
+│   ├── CLASS_OVERVIEW.md                # Class relationships
+│   ├── CORRELATION_ID_EXPLAINED.md      # Correlation ID middleware guide
+│   └── README.md                        # Docs index
+│
+├── 📁 presentation/                      # ⭐ Onboarding materials (NEW!)
+│   ├── ONBOARDING_GUIDE.md              # Main onboarding document (40+ min)
+│   ├── CODE_CONCEPTS.md                 # Giải thích concepts (FastAPI, JSON, v.v.)
+│   ├── ARCHITECTURE_EXPLAINED.md        # Kiến trúc hiện tại vs. mục tiêu
+│   ├── TASK_EXAMPLES.md                 # Ví dụ tasks (fix bug, add feature)
+│   ├── QUICK_START.md                   # Setup trong 5 phút
+│   ├── COMMON_PITFALLS.md               # Lỗi thường gặp & fixes
+│   ├── CONTRIBUTION_GUIDE.md            # Git workflow, code review
+│   ├── DEMO_SCRIPT.md                   # Kịch bản demo dự án
+│   └── 📂 diagrams/
+│       ├── architecture-overview.mmd    # Mermaid diagram (kiến trúc)
+│       ├── data-flow.mmd                # Sequence diagram (data flow)
+│       └── folder-structure.txt         # File này đang đọc! 😊
+│
+├── 📁 test/                              # Unit tests
+│   ├── test_corr_test.py                # Correlation middleware tests
+│   └── test_correlation.py              # (Duplicate - cần cleanup)
+│
+├── 📄 update_news.py                     # ⭐ CLI script - Cập nhật tin
+│                                        # Usage: python update_news.py --top 30
+│
+├── 📄 news.html                          # ⭐ Main UI entry point
+│                                        # Served by FastAPI at http://localhost:8000/
+│
+├── 📄 start_fastapi.bat                  # ⭐ Script khởi động server (Windows)
+│                                        # Chạy: uvicorn src.api.app:app --reload
+│
+├── 📄 update_news.bat                    # ⭐ Script cập nhật tin (Windows)
+│                                        # Wrapper cho update_news.py
+│
+├── 📄 requirements.txt                   # Python dependencies
+│                                        # fastapi, uvicorn, google-generativeai, v.v.
+│
+├── 📄 .env                               # ⚠️ Environment variables (KHÔNG commit lên Git!)
+│                                        # GEMINI_API_KEY=xxx
+│                                        # PORT=8000
+│
+├── 📄 .gitignore                         # Git ignore rules
+│                                        # .env, __pycache__, .venv, v.v.
+│
+├── 📄 README.md                          # Project README (overview)
+│
+└── 📁 .venv/                             # Virtual environment (Python packages)
+                                         # (Không commit lên Git)
+```
+
+---
+
+## 📊 Thống Kê Thư Mục
+
+| Category | Folders | Files | Lines of Code (estimate) |
+|----------|---------|-------|--------------------------|
+| **Backend (src/)** | 10 | 25 | ~1,200 LOC |
+| **Frontend (js/, styles/)** | 5 | 15 | ~800 LOC |
+| **Data** | 2 | 2 | N/A (JSON data) |
+| **Docs** | 2 | 12 | ~5,000 lines (markdown) |
+| **Tests** | 1 | 2 | ~150 LOC |
+| **Root scripts** | - | 4 | ~100 LOC |
+| **Total** | 20 | 60 | ~2,250 LOC (code) |
+
+---
+
+## 🎯 Files Quan Trọng Nhất (Top 10)
+
+### Backend (Python)
+1. **src/api/app.py** → FastAPI server, endpoints
+2. **src/pipelines/news_pipeline.py** → Workflow orchestration
+3. **src/services/feed_service.py** → Fetch articles
+4. **src/services/summarization_service.py** → AI summarization
+5. **src/services/storage_service.py** → Save/load JSON
+6. **update_news.py** → CLI entry point
+
+### Frontend (JavaScript)
+7. **js/main.js** → Frontend entry point
+8. **js/services/newsService.js** → API client
+9. **js/ui/render.js** → UI rendering
+10. **news.html** → Main UI template
+
+---
+
+## 🚀 Entry Points (Điểm Bắt Đầu)
+
+### 1. Chạy Server
+```bash
+start_fastapi.bat
+→ Calls: uvicorn src.api.app:app --reload --port 8000
+→ Entry file: src/api/app.py
+```
+
+### 2. Cập Nhật Tin
+```bash
+python update_news.py --top 30
+→ Entry file: update_news.py
+→ Calls: NewsPipeline().run()
+```
+
+### 3. Frontend
+```
+Browser → http://localhost:8000
+→ Entry file: news.html
+→ Loads: js/main.js
+→ Calls API: GET /api/summaries
+```
+
+---
+
+## 📝 Naming Conventions
+
+| Type | Convention | Example |
+|------|------------|---------|
+| **Python file** | snake_case.py | feed_service.py |
+| **JavaScript file** | camelCase.js | newsService.js |
+| **CSS file** | kebab-case.css | news-cards.css |
+| **Folder** | lowercase/snake_case | services/, __pycache__ |
+| **Config** | UPPERCASE | .env, README.md |
+
+---
+
+## 🔍 Cách Tìm Code
+
+**Scenario: "Tôi muốn sửa cách hiển thị news card"**
+→ File: `js/ui/render.js` + `styles/news-cards.css`
+
+**Scenario: "Tôi muốn thay đổi API endpoint"**
+→ File: `src/api/app.py`
+
+**Scenario: "Tôi muốn thêm nguồn tin mới (Hacker News)"**
+→ Tạo: `src/feeds/hackernews/client.py`
+→ Sửa: `src/services/feed_service.py`
+
+**Scenario: "Tôi muốn đổi AI model (OpenAI thay vì Gemini)"**
+→ Tạo: `src/clients/openai.py`
+→ Sửa: `src/services/summarization_service.py`
+
+---
+
+## ⚠️ Files KHÔNG Nên Sửa (Trừ Khi Biết Mình Đang Làm Gì)
+
+- `__init__.py` → Package markers (để trống)
+- `.venv/` → Virtual environment (auto-generated)
+- `__pycache__/` → Python bytecode cache (auto-generated)
+- `.env` → Chỉ sửa khi thay API key
+- `requirements.txt` → Chỉ sửa khi thêm/xóa package
+
+---
+
+## 📖 Đọc Code Từ Đâu?
+
+**Nếu bạn là junior dev, đọc theo thứ tự:**
+
+1. **news.html** → Hiểu UI structure
+2. **js/main.js** → Hiểu frontend flow
+3. **src/api/app.py** → Hiểu API endpoints
+4. **update_news.py** → Hiểu update workflow
+5. **src/pipelines/news_pipeline.py** → Hiểu orchestration
+6. **src/services/** → Hiểu business logic từng service
+
+**Sau đó đọc docs:**
+- `presentation/ONBOARDING_GUIDE.md`
+- `presentation/CODE_CONCEPTS.md`
+- `presentation/ARCHITECTURE_EXPLAINED.md`
+
+---
+
+**Good luck exploring the codebase! 🚀**

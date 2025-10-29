@@ -33,8 +33,7 @@ export function showLoadingOverlay(overlayElement, show, customMessage = null) {
 
     const loadingTextElement = overlayElement.querySelector(".loading-text");
     if (loadingTextElement) {
-      const message =
-        customMessage || getRandomLoadingMessage();
+      const message = customMessage || getRandomLoadingMessage();
       loadingTextElement.textContent = message;
     }
   } else {
@@ -53,14 +52,14 @@ export function showError(container, message) {
   container.innerHTML = `
     <div class="error-message" style="text-align: center; padding: 2rem; color: #e53e3e;">
       <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-      <h3>Đã xảy ra lỗi</h3>
+      <h3>An error occurred</h3>
       <p>${escapeHtml(message)}</p>
       <button
         type="button"
         style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;"
         onclick="location.reload()"
       >
-        Tải lại trang
+        Refresh page
       </button>
     </div>
   `;
@@ -68,10 +67,10 @@ export function showError(container, message) {
 
 function getRandomLoadingMessage() {
   const loadingTexts = [
-    "Đang lấy tin tức mới nhất...",
-    "Đang cập nhật dữ liệu...",
-    "Đang tải nội dung...",
-    "Đang xử lý thông tin...",
+    "Loading latest news...",
+    "Updating data...",
+    "Loading content...",
+    "Processing information...",
   ];
   const randomIndex = Math.floor(Math.random() * loadingTexts.length);
   return loadingTexts[randomIndex];

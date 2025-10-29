@@ -43,7 +43,7 @@ An AI powered news aggregation project that monitors Techmeme, summarises the la
 - **⚡ Fast Refresh:** < 1 second UI reload (new optimization!)
 - Real-time Techmeme feed ingestion with resilient HTTP retry logic.
 - AI summarisation powered by Google Gemini (configurable model + batching).
-- FastAPI backend with new `/api/summaries` fast endpoint + traditional `/api/refresh`
+- FastAPI backend with `/api/summaries` for instant reloads, while admins refresh data via `update_news.py`
 - Responsive frontend with live refresh button, search, filters, and statistics.
 - **Correlation ID middleware** for distributed tracing
 - Utility scripts for full AI refresh, quick non-AI updates, and smoke tests.
@@ -126,7 +126,7 @@ e:\Viscode\Demo_Skola/
 5. **Generate initial data** (ensures `summaries.json` exists)
 
    ```powershell
-   py -3.13 update_news.py --top 25
+   py update_news.py --top 25
    ```
 
 6. **Start the FastAPI server**
@@ -144,12 +144,12 @@ e:\Viscode\Demo_Skola/
 
 ## Updating the Data
 
-| Command                                | Description                                                                                      |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `py -3.13 update_news.py --top 25`     | Full pipeline: fetch feed, summarise with Gemini, copy to `summaries.json`.                      |
-| `py -3.13 simple_update.py --limit 15` | Fast, non-AI refresh useful for demos or when the API key is unavailable.                        |
-| `py -3.13 quick_refresh.py`            | Touches `summaries.json` (updates timestamp/first title) for smoke testing.                      |
-| Frontend refresh button                | Calls `/api/refresh`, triggers `update_news.py` asynchronously, and polls `/api/refresh/status`. |
+| Command                                | Description                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `py -3.13 update_news.py --top 25`     | Full pipeline: fetch feed, summarise with Gemini, copy to `summaries.json`.                               |
+| `py -3.13 simple_update.py --limit 15` | Fast, non-AI refresh useful for demos or when the API key is unavailable.                                 |
+| `py -3.13 quick_refresh.py`            | Touches `summaries.json` (updates timestamp/first title) for smoke testing.                               |
+| Frontend refresh button                | Calls `/api/summaries` for a fast file reload (no AI). Run `update_news.py` first to generate fresh data. |
 
 **Tip:** The FastAPI server automatically serves the latest `summaries.json`, so refreshing the browser (or clicking the floating refresh button) updates the UI after any of the commands above complete.
 
@@ -190,16 +190,16 @@ Settings load values from the environment, falling back to defaults. `.env` is r
 
 ## FastAPI Endpoints
 
-| Method | Path                  | Description                                                               |
-| ------ | --------------------- | ------------------------------------------------------------------------- |
-| `GET`  | `/`                   | Redirects to `news.html`.                                                 |
-| `GET`  | `/news.html`          | Serves the frontend.                                                      |
-| `GET`  | `/styles.css`         | Stylesheet.                                                               |
-| `GET`  | `/js/...`             | JavaScript modules.                                                       |
-| `GET`  | `/summaries.json`     | Latest summaries for the UI.                                              |
-| `GET`  | `/api/refresh`        | Kick off background refresh (`update_news.py`). Returns immediate status. |
-| `GET`  | `/api/refresh/status` | Poll job status (started, completed, succeeded, output/error).            |
-| `GET`  | `/healthz`            | Simple health probe.                                                      |
+| Method | Path              | Description                  |
+| ------ | ----------------- | ---------------------------- |
+| `GET`  | `/`               | Redirects to `news.html`.    |
+| `GET`  | `/news.html`      | Serves the frontend.         |
+| `GET`  | `/styles.css`     | Stylesheet.                  |
+| `GET`  | `/js/...`         | JavaScript modules.          |
+| `GET`  | `/summaries.json` | Latest summaries for the UI. |
+| `GET`  | `/healthz`        | Simple health probe.         |
+
+> Historical `/api/refresh` and `/api/refresh/status` endpoints have been removed for safety. If you need an HTTP trigger, wrap `update_news.py` behind an authenticated admin route.
 
 Static directories (`/public`, `/styles`, `/js`) are mounted automatically when present.
 

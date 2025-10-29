@@ -14,6 +14,8 @@
 
 ---
 
+> **Note (Oct 2025):** Examples mentioning /api/refresh describe the legacy HTTP trigger. That endpoint is disabled by default; run python update_news.py (or add your own secured admin API) to refresh data in the current build.
+
 ## 1. Correlation ID là gì?
 
 ### Định nghĩa đơn giản

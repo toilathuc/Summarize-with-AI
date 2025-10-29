@@ -5,15 +5,12 @@ from __future__ import annotations
 import json
 import logging
 import os
-import subprocess
 import sys
-import threading
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +18,6 @@ from fastapi.staticfiles import StaticFiles
 from src.middlewares.correlation import (
     CorrelationIdMiddleware,
     get_current_correlation_id,
-    set_current_correlation_id,
 )
 
 LOGGER = logging.getLogger("tech_news_app")
@@ -71,18 +67,10 @@ if PUBLIC_DIR.exists():
 if STYLES_DIR.exists():
     app.mount("/styles", StaticFiles(directory=STYLES_DIR), name="styles")
 
-RefreshStatus = Dict[str, object]
-refresh_status: RefreshStatus = {
-    "started": False,
-    "completed": True,
-    "success": True,
-    "timestamp": None,
-    "output": "",
-    "error": "",
-    "finished_at": None,
-    "correlation_id": None,
-}
-refresh_lock = threading.Lock()
+# Background refresh via subprocess has been removed.
+# Updates are expected to be performed by running `update_news.py` from the CLI
+# (e.g. by an admin or a scheduler). The frontend reads `summaries.json` via
+# the fast endpoint (`/api/summaries`) which returns the persisted file.
 
 
 # ==================== HELPER FUNCTIONS ====================
@@ -119,8 +107,9 @@ def calculate_age(last_updated_str: str | None) -> str:
     Returns:
         Human-readable string like "5 phút trước", "2 giờ trước"
     """
+    
     if not last_updated_str:
-        return "không rõ"
+        return "Unknown"
     
     try:
         last_updated = datetime.fromisoformat(last_updated_str.replace('Z', '+00:00'))
@@ -128,73 +117,28 @@ def calculate_age(last_updated_str: str | None) -> str:
         seconds = age.total_seconds()
         
         if seconds < 60:
-            return "vừa xong"
+            return "Just now"
         elif seconds < 3600:
             minutes = int(seconds / 60)
-            return f"{minutes} phút trước"
+            return f"{minutes} minutes ago"
         elif seconds < 86400:
             hours = int(seconds / 3600)
-            return f"{hours} giờ trước"
+            return f"{hours} hours ago"
         else:
             days = int(seconds / 86400)
-            return f"{days} ngày trước"
+            return f"{days} days ago"
     except (ValueError, AttributeError):
-        return "không rõ"
+        return "Unknown"
 
 
 # ==================== BACKGROUND JOB ====================
 
-def _run_update_job(job_started_at: float, correlation_id: Optional[str]) -> None:
-    """Invoke update_news.py and capture status for polling."""
-    # Set correlation id for this background thread context
-    set_current_correlation_id(correlation_id)
-    LOGGER.info("Starting refresh job at %.3f (correlation=%s)", job_started_at, correlation_id or "-")
-    
-    try:
-        env = os.environ.copy()
-        if correlation_id:
-            env["X_CORRELATION_ID"] = correlation_id
-
-        result = subprocess.run(
-            [sys.executable, "update_news.py"],
-            capture_output=True,
-            text=True,
-            cwd=str(ROOT_DIR),
-            timeout=900,
-            env=env,
-        )
-        success = result.returncode == 0
-        output = result.stdout
-        error = result.stderr if not success else ""
-        LOGGER.info("Refresh job finished with code %s", result.returncode)
-        if error:
-            LOGGER.error("Refresh job stderr: %s", error[:4000])
-    except subprocess.TimeoutExpired as exc:
-        success = False
-        output = exc.stdout or ""
-        error = f"Refresh timed out after {exc.timeout} seconds"
-        LOGGER.exception("Refresh job timed out")
-    except Exception as exc:  # pylint: disable=broad-except
-        success = False
-        output = ""
-        error = str(exc)
-        LOGGER.exception("Refresh job failed")
-    finally:
-        # Clear correlation id after job completes
-        set_current_correlation_id(None)
-
-    with refresh_lock:
-        refresh_status.update(
-            {
-                "started": False,
-                "completed": True,
-                "success": success,
-                "error": error,
-                "output": output,
-                "finished_at": time.time(),
-                "correlation_id": correlation_id,
-            }
-        )
+# Note: background subprocess-based refresh was intentionally removed to
+# simplify the runtime. If you want an HTTP-triggered background update,
+# consider calling the pipeline in-process (e.g., dispatching NewsPipeline.run
+# in a thread or an async task) rather than spawning a subprocess. For now
+# updates should be performed via the CLI: `python update_news.py` or
+# `update_news.bat` (Windows).
 
 
 @app.get("/", include_in_schema=False)
@@ -273,56 +217,49 @@ async def get_summaries_fast() -> JSONResponse:
     )
 
 
-@app.get("/api/refresh", response_model=None)
-async def trigger_refresh(background_tasks: BackgroundTasks) -> JSONResponse:
-    with refresh_lock:
-        if refresh_status.get("started") and not refresh_status.get("completed"):
-            raise HTTPException(status_code=409, detail="Refresh already in progress")
-
-        started_at = time.time()
-        correlation_id = get_current_correlation_id()
-        refresh_status.update(
-            {
-                "started": True,
-                "completed": False,
-                "success": False,
-                "timestamp": started_at,
-                "output": "",
-                "error": "",
-                "finished_at": None,
-                "correlation_id": correlation_id,
-            }
-        )
-
-    background_tasks.add_task(_run_update_job, started_at, correlation_id)
-    return JSONResponse(
-        {
-            "status": "started",
-            "message": "Data refresh started in background",
-            "timestamp": refresh_status["timestamp"],
-            "correlation_id": correlation_id,
-        }
-    )
 
 
-@app.get("/api/refresh/status")
-async def get_refresh_status() -> JSONResponse:
-    with refresh_lock:
-        status_copy = dict(refresh_status)
-    return JSONResponse(status_copy)
+# The HTTP-triggered refresh/status endpoints have been removed. Use the
+# CLI (`python update_news.py`) or an external scheduler to perform updates.
 
 
 @app.get("/healthz", include_in_schema=False)
 async def healthcheck() -> JSONResponse:
     return JSONResponse({"status": "ok"})
 
-
 if __name__ == "__main__":
-    import uvicorn
+    try:
+        import uvicorn  # type: ignore
+    except Exception:
+        # If uvicorn is not importable in this environment (e.g. linter/IDE),
+        # try to run it as a module via subprocess, otherwise instruct the user.
+        try:
+            import subprocess
 
-    uvicorn.run(
-        "src.api.app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-    )
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "uvicorn",
+                    "src.api.app:app",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    "8000",
+                    "--reload",
+                ],
+                check=True,
+            )
+        except Exception:
+            print(
+                "Uvicorn is not available; install it with 'pip install uvicorn[standard]' "
+                "or run 'python -m uvicorn src.api.app:app'"
+            )
+            sys.exit(1)
+    else:
+        uvicorn.run(
+            "src.api.app:app",
+            host="0.0.0.0",
+            port=8000,
+            reload=True,
+        )

@@ -1,8 +1,4 @@
-import {
-  fetchNewsData,
-  refreshNewsFast,
-  triggerBackendUpdate,
-} from "./services/newsService.js";
+﻿import { fetchNewsData, refreshNewsFast } from "./services/newsService.js";
 import { applyFilters } from "./filters.js";
 import { renderNews } from "./ui/render.js";
 import { updateStats, updateLastUpdated } from "./ui/stats.js";
@@ -91,7 +87,7 @@ async function bootstrap(elements) {
     console.error("Error loading news data:", error);
     showError(
       elements.newsContainer,
-      "Không thể tải dữ liệu tin tức. Vui lòng thử lại sau."
+      "Unable to load news data. Please try again later."
     );
   } finally {
     showLoading(elements.loadingElement, elements.newsContainer, false);
@@ -122,7 +118,7 @@ async function handleRefresh(elements) {
     return;
   }
 
-  showLoadingOverlay(loadingOverlay, true, "Đang tải dữ liệu mới...");
+  showLoadingOverlay(loadingOverlay, true, "Loading new data...");
 
   refreshBtn.classList.add("loading");
   refreshBtn.disabled = true;
@@ -162,16 +158,16 @@ async function handleRefresh(elements) {
     }
 
     const totalItems = state.newsData.length;
-    let successMessage = `Đã tải lại ${totalItems} bài viết`;
+    let successMessage = `Loaded ${totalItems} articles`;
 
     // Show freshness info
     if (data.freshness) {
-      successMessage += ` (cập nhật ${data.freshness})`;
+      successMessage += ` (updated ${data.freshness})`;
     }
 
     // Add stale indicator if needed
     if (data.isStale) {
-      successMessage += ` ⚠️`;
+      successMessage += ` data is stale`;
     } else {
       successMessage += ` ✅`;
     }
@@ -197,7 +193,7 @@ async function handleRefresh(elements) {
     }
 
     showRefreshError(
-      error.message || "Không thể cập nhật dữ liệu. Vui lòng thử lại sau."
+      error.message || "Unable to update data. Please try again later."
     );
 
     // Reset button after 5 seconds on error
@@ -215,102 +211,6 @@ async function handleRefresh(elements) {
  * Handle full backend update - fetch from Techmeme + AI summarization.
  * This is the slow path (30-90 seconds).
  */
-async function handleFullUpdate() {
-  const elements = getElements();
-  const { refreshBtn, loadingOverlay } = elements;
-
-  if (!refreshBtn) {
-    console.error("Refresh button not found");
-    return;
-  }
-
-  const icon = refreshBtn.querySelector(".refresh-icon");
-
-  showLoadingOverlay(
-    loadingOverlay,
-    true,
-    "Đang lấy dữ liệu mới từ Techmeme..."
-  );
-
-  refreshBtn.classList.add("loading");
-  refreshBtn.disabled = true;
-
-  try {
-    console.log("Starting full backend update...");
-
-    const { data } = await triggerBackendUpdate({
-      onProgress: (message) => {
-        console.log("Progress:", message);
-        showLoadingOverlay(loadingOverlay, true, message);
-      },
-    });
-
-    console.log(
-      "Backend update completed, updating UI with",
-      data.items?.length,
-      "items"
-    );
-
-    // Update state
-    state.newsData = data.items || [];
-    state.lastUpdated = data.lastUpdated;
-
-    // Apply current filters
-    const searchTerm = elements.searchInput?.value || "";
-    const typeValue = elements.typeFilter?.value || "";
-    state.filteredData = applyFilters(state.newsData, searchTerm, typeValue);
-
-    // Update UI
-    renderCurrentData(elements);
-    updateLastUpdated(elements.lastUpdatedElement, state.lastUpdated);
-
-    showLoadingOverlay(loadingOverlay, false);
-
-    // Success animation
-    refreshBtn.classList.remove("loading");
-    refreshBtn.classList.add("success");
-    if (icon) {
-      icon.className = "fas fa-check";
-    }
-
-    const totalItems = state.newsData.length;
-    showRefreshSuccess(
-      `Dữ liệu mới đã được cập nhật! Tìm thấy ${totalItems} bài viết`
-    );
-
-    // Reset button after 3 seconds
-    setTimeout(() => {
-      refreshBtn.classList.remove("success");
-      if (icon) {
-        icon.className = "fas fa-sync-alt refresh-icon";
-      }
-      refreshBtn.disabled = false;
-    }, 3000);
-  } catch (error) {
-    console.error("Error in full update:", error);
-    showLoadingOverlay(loadingOverlay, false);
-
-    refreshBtn.classList.remove("loading");
-    refreshBtn.classList.add("error");
-    if (icon) {
-      icon.className = "fas fa-exclamation-triangle";
-    }
-
-    showRefreshError(
-      error.message || "Không thể cập nhật dữ liệu. Vui lòng thử lại sau."
-    );
-
-    // Reset button after 5 seconds on error
-    setTimeout(() => {
-      refreshBtn.classList.remove("error");
-      if (icon) {
-        icon.className = "fas fa-sync-alt refresh-icon";
-      }
-      refreshBtn.disabled = false;
-    }, 5000);
-  }
-}
-
 function renderCurrentData(elements) {
   if (state.filteredData.length === 0) {
     renderNews(elements.newsContainer, []);

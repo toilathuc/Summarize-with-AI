@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tech News Summary - Techmeme RSS</title>
+    <link rel="stylesheet" href="styles/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="header-content">
+          <h1><i class="fas fa-newspaper"></i> Tech News Summary</h1>
+          <p class="subtitle">
+            <!-- The summaries of latest technology news from Techmeme -->
+            The summaries of latest technology news from Techmeme
+          </p>
+          <div class="stats">
+            <span class="stat-item">
+              <i class="fas fa-clock"></i>
+              <span id="last-updated"></span>
+            </span>
+            <span class="stat-item">
+              <i class="fas fa-list"></i>
+              <span id="total-items">0 Articles</span>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Floating Refresh Button - Top Left Corner -->
+      <div class="floating-refresh-container">
+        <button
+          id="refresh-btn"
+          class="floating-refresh-btn"
+          title="Refresh data"
+        >
+          <div class="refresh-icon-wrapper">
+            <i class="fas fa-sync-alt refresh-icon"></i>
+          </div>
+          <div class="refresh-glow"></div>
+          <div class="refresh-pulse"></div>
+        </button>
+      </div>
+
+      <main class="main-content">
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label for="type-filter">Type:</label>
+            <select id="type-filter">
+              <option value="">All</option>
+              <option value="news">News</option>
+              <option value="announcement">Announcement</option>
+              <option value="video">Video</option>
+              <option value="howto">How-to</option>
+              <option value="troubleshooting">Troubleshooting</option>
+            </select>
+          </div>
+          <div class="search-group">
+            <i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="Search news..." />
+          </div>
+        </div>
+
+        <div id="news-container" class="news-container">
+          <!-- News items will be dynamically loaded here -->
+        </div>
+
+        <div id="loading" class="loading" style="display: none">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Loading...</span>
+        </div>
+
+        <div id="no-results" class="no-results" style="display: none">
+          <i class="fas fa-search"></i>
+          <h3>No results found</h3>
+          <p>Try changing the search keyword or filter</p>
+        </div>
+      </main>
+
+      <footer class="footer">
+        <p>
+          &copy; 2025 Tech News Summary. Data from
+          <a href="https://www.techmeme.com" target="_blank">Techmeme</a>
+        </p>
+      </footer>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading data</div>
+        <div class="loading-subtext">Wait a minutes, please...</div>
+        <div class="loading-progress">
+          <div class="loading-progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add version to force reload after updates -->
+    <script type="module" src="js/main.js?v=4.0"></script>
+  </body>
+</html>

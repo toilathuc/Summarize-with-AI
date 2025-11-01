@@ -1,0 +1,233 @@
+/* Floating refresh action button */
+.floating-refresh-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.floating-refresh-btn {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4), 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+  outline: none;
+}
+
+.refresh-icon-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.refresh-icon {
+  font-size: 20px;
+  color: white;
+  transition: all 0.4s ease;
+}
+
+.refresh-glow {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.refresh-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  background: transparent;
+  border: 2px solid rgba(102, 126, 234, 0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  animation: pulseRing 2s ease-out infinite;
+}
+
+.floating-refresh-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6),
+    0 6px 15px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+.floating-refresh-btn:hover .refresh-glow {
+  opacity: 0.8;
+}
+
+.floating-refresh-btn:hover .refresh-icon {
+  transform: rotate(180deg) scale(1.1);
+  color: #fff;
+}
+
+.floating-refresh-btn:active {
+  transform: scale(1.05);
+}
+
+.floating-refresh-btn.loading {
+  pointer-events: none;
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  animation: loadingBounce 1s ease-in-out infinite;
+}
+
+.floating-refresh-btn.loading .refresh-icon {
+  animation: refreshSpin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+.floating-refresh-btn.loading .refresh-pulse {
+  animation: loadingPulse 1s ease-in-out infinite;
+}
+
+.floating-refresh-btn.success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  animation: successBurst 0.8s ease-out;
+}
+
+.floating-refresh-btn.success .refresh-icon {
+  animation: successSpin 0.8s ease-out;
+}
+
+.floating-refresh-btn.error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  animation: errorShake 0.6s ease-out;
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes loadingBounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes loadingPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes successBurst {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.2);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes successSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes errorShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes refreshSpin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes successBounce {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.2) rotate(-10deg);
+  }
+  75% {
+    transform: scale(1.2) rotate(10deg);
+  }
+}

@@ -25,6 +25,8 @@ public class SummaryPayload {
 
     public void putExtra(String key, Object value) { this.extra.put(key, value); }
 
+    public Map<String, Object> getExtra() { return extra; }
+
     @JsonAnyGetter
     public Map<String, Object> any() { return extra; }
 }

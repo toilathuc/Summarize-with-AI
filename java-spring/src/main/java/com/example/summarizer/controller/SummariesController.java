@@ -2,6 +2,7 @@ package com.example.summarizer.controller;
 
 import com.example.summarizer.service.SummarizationService;
 import org.slf4j.MDC;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +29,11 @@ public class SummariesController {
         } catch (IOException ex) {
             return ResponseEntity.status(500).body(Map.of("error", ex.getMessage()));
         }
+    }
+
+    @GetMapping(value = "/summaries.json", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getSummariesJson() {
+        return getSummaries();
     }
 
     @GetMapping("/healthz")

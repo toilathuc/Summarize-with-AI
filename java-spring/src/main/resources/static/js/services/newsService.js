@@ -1,5 +1,4 @@
-﻿const SUMMARY_PATH = "./summaries.json";
-const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by FastAPI
+const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by the backend
 
 // Slow `/api/refresh` endpoints were retired. Admins should run
 // `python update_news.py` (or the Windows batch) whenever they need fresh data.
@@ -35,18 +34,11 @@ export async function refreshNewsFast() {
 /**
  * Legacy fetch from static file - kept for compatibility with existing scripts.
  */
-export async function fetchNewsData({ cacheBust = false } = {}) {
-  const url = cacheBust ? `${SUMMARY_PATH}?t=${Date.now()}` : SUMMARY_PATH;
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
+export async function fetchNewsData() {
+  const apiData = await refreshNewsFast();
   return {
-    items: Array.isArray(data.items) ? data.items : [],
-    lastUpdated: data.last_updated || data.lastUpdated || null,
-    raw: data,
+    items: Array.isArray(apiData.items) ? apiData.items : [],
+    lastUpdated: apiData.lastUpdated,
+    raw: apiData,
   };
 }

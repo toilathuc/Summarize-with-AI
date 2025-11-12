@@ -1,43 +1,46 @@
 package com.example.summarizer.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.summarizer.domain.SummaryPayload;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class SummarizationService {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final StorageService storageService;
+
+    public SummarizationService(StorageService storageService) {
+        this.storageService = storageService;
+    }
 
     public Map<String, Object> getSummaries() throws IOException {
-        Path file = Path.of("data", "outputs", "summaries.json");
-        if (!Files.exists(file)) {
-            throw new IOException("summaries.json not found at: " + file.toAbsolutePath());
+        SummaryPayload payload = storageService.loadExisting();
+        if (payload == null) {
+            throw new IOException("No summaries cached yet. Please run the pipeline first.");
         }
 
-        JsonNode root = mapper.readTree(file.toFile());
-        String lastUpdated = root.path("last_updated").asText(null);
-
+        Map<String, Object> extras = new HashMap<>(payload.getExtra());
+        String lastUpdated = toStringValue(extras.get("last_updated"));
         boolean isStale = checkIfStale(lastUpdated, 60);
         String freshness = calculateAge(lastUpdated);
-        int count = root.path("items").isArray() ? root.path("items").size() : 0;
 
-        Map<String, Object> out = new HashMap<>();
-        out.put("items", root.path("items"));
-        out.put("last_updated", lastUpdated);
-        out.put("is_stale", isStale);
-        out.put("freshness", freshness);
-        out.put("count", count);
-        return out;
+        List<?> items = payload.getSummaries();
+        int count = items == null ? 0 : items.size();
+
+        Map<String, Object> response = new HashMap<>(extras);
+        response.put("items", payload.getSummaries());
+        response.put("last_updated", lastUpdated);
+        response.put("is_stale", isStale);
+        response.put("freshness", freshness);
+        response.put("count", count);
+        return response;
     }
 
     private static boolean checkIfStale(String lastUpdatedStr, int thresholdMinutes) {
@@ -64,5 +67,9 @@ public class SummarizationService {
         } catch (DateTimeParseException | NullPointerException ex) {
             return "Unknown";
         }
+    }
+
+    private static String toStringValue(Object value) {
+        return value == null ? null : value.toString();
     }
 }

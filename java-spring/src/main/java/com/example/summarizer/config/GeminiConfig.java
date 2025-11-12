@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GeminiConfig {
 
-    @Value("${gemini.apiKey:}")
+    @Value("${gemini.apiKey:${GEMINI_API_KEY:}}")
     private String apiKey;
 
     @Value("${gemini.model:gemini-1}")
@@ -36,7 +36,7 @@ public class GeminiConfig {
         String effectiveEndpoint = endpoint;
         if ("google".equalsIgnoreCase(provider)) {
             if (endpoint == null || endpoint.contains("example.com") || endpoint.trim().isEmpty()) {
-                effectiveEndpoint = "https://generativelanguage.googleapis.com/v1beta2/models/" + model + ":generate";
+                effectiveEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
             } else if (endpoint.contains("{model}")) {
                 effectiveEndpoint = endpoint.replace("{model}", model);
             }

@@ -18,14 +18,19 @@ public class FeedService {
 
     private final ArticleRepository articleRepository;
     private final TechmemeFeedClient client;
+    private final ContentCrawlerService contentCrawlerService;
 
-    public FeedService(ArticleRepository articleRepository, TechmemeFeedClient client) {
+    public FeedService(ArticleRepository articleRepository,
+                       TechmemeFeedClient client,
+                       ContentCrawlerService contentCrawlerService) {
         this.articleRepository = articleRepository;
         this.client = client;
+        this.contentCrawlerService = contentCrawlerService;
     }
 
     public List<FeedArticle> fetchLatest(Integer limit) throws IOException {
         List<FeedArticle> cached = articleRepository.fetchLatest(limit);
+        contentCrawlerService.enrich(cached, false);
         if (!cached.isEmpty()) {
             logger.debug("Serving {} articles from SQLite cache (limit={})", cached.size(), limit);
             return cached;
@@ -33,6 +38,7 @@ public class FeedService {
 
         List<FeedArticle> fallback = client.fetchArticles(null);
         if (!fallback.isEmpty()) {
+            contentCrawlerService.enrich(fallback, true);
             articleRepository.replaceAll(fallback, DEFAULT_SOURCE);
             logger.info("Cached {} Techmeme articles fetched from RSS", fallback.size());
             if (limit != null && fallback.size() > limit) {

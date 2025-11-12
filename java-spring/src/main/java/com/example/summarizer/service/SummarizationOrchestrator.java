@@ -8,14 +8,20 @@ import com.example.summarizer.utils.ChunkUtils;
 import com.example.summarizer.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Port of the Python SummarizationService orchestration logic.
  */
 public class SummarizationOrchestrator {
+
+    private static final Logger logger = LoggerFactory.getLogger(SummarizationOrchestrator.class);
 
     private final GeminiClient client;
     private final String promptTemplate;
@@ -29,24 +35,60 @@ public class SummarizationOrchestrator {
     }
 
     public List<SummaryResult> summarize(List<FeedArticle> articles) throws Exception {
-        List<SummaryRequest> requests = new ArrayList<>();
-        for (FeedArticle a : articles) requests.add(a.toSummaryRequest());
+        return summarize(articles, null);
+    }
 
-        List<SummaryResult> results = new ArrayList<>();
-        for (List<SummaryRequest> batch : ChunkUtils.chunked(requests, batchSize)) {
-            String prompt = buildPrompt(batch);
+    public List<SummaryResult> summarize(List<FeedArticle> articles, Map<String, SummaryResult> cache) throws Exception {
+        Map<String, SummaryResult> safeCache = cache == null ? Map.of() : cache;
+        List<SummaryResult> orderedResults = new ArrayList<>(Collections.nCopies(articles.size(), null));
+        List<PendingRequest> pending = new ArrayList<>();
+
+        int reused = 0;
+        for (int i = 0; i < articles.size(); i++) {
+            FeedArticle article = articles.get(i);
+            SummaryResult cached = findCachedResult(article, safeCache);
+            if (cached != null) {
+                orderedResults.set(i, cached);
+                reused++;
+            } else {
+                pending.add(new PendingRequest(article.toSummaryRequest(), i));
+            }
+        }
+
+        int generated = 0;
+        for (List<PendingRequest> batch : ChunkUtils.chunked(pending, batchSize)) {
+            List<SummaryRequest> requests = new ArrayList<>();
+            for (PendingRequest req : batch) requests.add(req.request);
+            List<SummaryResult> batchResults;
             try {
+                String prompt = buildPrompt(requests);
                 String raw = client.generate(prompt);
                 String jsonBlock = JsonUtils.extractJsonBlock(raw);
                 JsonNode payload = mapper.readTree(jsonBlock);
-                results.addAll(parseSummaries(payload));
+                batchResults = parseSummaries(payload);
             } catch (com.fasterxml.jackson.core.JsonProcessingException jex) {
-                results.addAll(fallbackSummaries(batch));
+                batchResults = fallbackSummaries(requests);
             } catch (Exception ex) {
-                results.addAll(fallbackSummaries(batch));
+                batchResults = fallbackSummaries(requests);
+            }
+            generated += batchResults.size();
+            for (int i = 0; i < batch.size(); i++) {
+                SummaryResult result = i < batchResults.size()
+                        ? batchResults.get(i)
+                        : fallbackSummaries(List.of(batch.get(i).request)).get(0);
+                orderedResults.set(batch.get(i).position, result);
             }
         }
-        return results;
+
+        for (int i = 0; i < orderedResults.size(); i++) {
+            if (orderedResults.get(i) == null) {
+                SummaryRequest fallbackReq = articles.get(i).toSummaryRequest();
+                orderedResults.set(i, fallbackSummaries(List.of(fallbackReq)).get(0));
+            }
+        }
+
+        logger.debug("Summaries reused: {}, generated: {}", reused, orderedResults.size() - reused);
+        return orderedResults;
     }
 
     private String buildPrompt(List<SummaryRequest> batch) throws Exception {
@@ -77,5 +119,28 @@ public class SummarizationOrchestrator {
             ));
         }
         return out;
+    }
+
+    private SummaryResult findCachedResult(FeedArticle article, Map<String, SummaryResult> cache) {
+        if (cache.isEmpty() || article == null) return null;
+        String key = cacheKey(article.getUrl(), article.getTitle());
+        if (key == null) return null;
+        return cache.get(key);
+    }
+
+    private String cacheKey(String url, String title) {
+        if (url != null && !url.isBlank()) return url.trim();
+        if (title != null && !title.isBlank()) return title.trim();
+        return null;
+    }
+
+    private static class PendingRequest {
+        private final SummaryRequest request;
+        private final int position;
+
+        private PendingRequest(SummaryRequest request, int position) {
+            this.request = request;
+            this.position = position;
+        }
     }
 }

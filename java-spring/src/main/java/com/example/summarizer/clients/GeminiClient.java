@@ -2,7 +2,10 @@ package com.example.summarizer.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -16,6 +19,8 @@ import java.time.Duration;
  * Endpoint URL is configurable; body is JSON: {"model":..., "prompt":...}
  */
 public class GeminiClient {
+
+    private static final Logger logger = LoggerFactory.getLogger(GeminiClient.class);
 
     private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -52,14 +57,7 @@ public class GeminiClient {
     public String generate(String prompt) throws IOException, InterruptedException {
         String payload;
         if ("google".equalsIgnoreCase(provider)) {
-            // Build Google Generative API request shape for /v1beta2/models/{model}:generate
-            // Body example: { "prompt": { "text": "..." }, "temperature": 0.0 }
-            ObjectNode root = mapper.createObjectNode();
-            ObjectNode promptNode = mapper.createObjectNode();
-            promptNode.put("text", prompt);
-            root.set("prompt", promptNode);
-            root.put("temperature", 0.0);
-            payload = mapper.writeValueAsString(root);
+            payload = mapper.writeValueAsString(buildGooglePayload(prompt));
         } else {
             // Default raw shape: {"model":..., "prompt":...}
             payload = mapper.writeValueAsString(new RequestBody(model, prompt));
@@ -84,41 +82,32 @@ public class GeminiClient {
 
         int attempt = 0;
         long backoffMs = 500;
+        logger.debug("Gemini request prepared (provider={}, model={}, endpoint={})", provider, model, endpoint);
         while (true) {
             try {
+                logger.debug("Gemini call attempt {}", attempt + 1);
                 HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 int code = resp.statusCode();
                 if (code >= 200 && code < 300) {
                     String body = resp.body();
-                    // If provider=google, extract textual output from JSON response
+                    logger.debug("Gemini response OK ({} chars)", body == null ? 0 : body.length());
                     if ("google".equalsIgnoreCase(provider)) {
                         try {
-                            JsonNode root = mapper.readTree(body);
-                            // v1 responses may have "candidates" or "output" or "candidates" inside "candidates"
-                            if (root.has("candidates") && root.path("candidates").isArray() && root.path("candidates").size() > 0) {
-                                JsonNode first = root.path("candidates").get(0);
-                                if (first.has("content")) return first.path("content").asText();
-                                if (first.has("output")) return first.path("output").asText();
-                            }
-                            // Some variants: "output" may be an array of objects with "content"
-                            if (root.has("output") && root.path("output").isArray() && root.path("output").size() > 0) {
-                                JsonNode f = root.path("output").get(0);
-                                if (f.has("content")) return f.path("content").asText();
-                            }
+                            return extractGoogleText(body);
                         } catch (Exception ex) {
-                            // Fallback to raw body
-                            return body;
+                            logger.warn("Failed to parse Google Gemini payload, returning raw body: {}", ex.getMessage());
                         }
-                        return body;
                     }
                     return body;
                 } else {
+                    logger.warn("Gemini responded with status {} on attempt {}", code, attempt + 1);
                     attempt++;
                     if (attempt > maxRetries) {
                         throw new IOException("Non-2xx response from Gemini endpoint: " + code + ": " + resp.body());
                     }
                 }
             } catch (IOException | InterruptedException ex) {
+                logger.warn("Gemini call failed on attempt {}: {}", attempt + 1, ex.getMessage());
                 attempt++;
                 if (attempt > maxRetries) {
                     throw ex;
@@ -133,6 +122,53 @@ public class GeminiClient {
             }
             backoffMs = Math.min(backoffMs * 2, 5000);
         }
+    }
+
+    private ObjectNode buildGooglePayload(String prompt) {
+        ObjectNode root = mapper.createObjectNode();
+        ArrayNode contents = root.putArray("contents");
+        ObjectNode userMessage = mapper.createObjectNode();
+        userMessage.put("role", "user");
+        ArrayNode parts = userMessage.putArray("parts");
+        ObjectNode textPart = mapper.createObjectNode();
+        textPart.put("text", prompt);
+        parts.add(textPart);
+        contents.add(userMessage);
+
+        ObjectNode generationConfig = mapper.createObjectNode();
+        generationConfig.put("responseMimeType", "application/json");
+        ObjectNode thinkingConfig = mapper.createObjectNode();
+        thinkingConfig.put("thinkingBudget", 0);
+        generationConfig.set("thinkingConfig", thinkingConfig);
+        root.set("generationConfig", generationConfig);
+        return root;
+    }
+
+    private String extractGoogleText(String body) throws IOException {
+        JsonNode root = mapper.readTree(body);
+        JsonNode candidates = root.path("candidates");
+        if (candidates.isArray()) {
+            for (JsonNode candidate : candidates) {
+                JsonNode content = candidate.path("content");
+                if (content.has("parts") && content.path("parts").isArray()) {
+                    StringBuilder builder = new StringBuilder();
+                    for (JsonNode part : content.path("parts")) {
+                        String text = part.path("text").asText(null);
+                        if (text != null) builder.append(text);
+                    }
+                    if (builder.length() > 0) {
+                        return builder.toString();
+                    }
+                }
+                if (content.has("text")) {
+                    String text = content.path("text").asText(null);
+                    if (text != null && !text.isBlank()) {
+                        return text;
+                    }
+                }
+            }
+        }
+        return body;
     }
 
     // Simple helper used to build request JSON for raw provider

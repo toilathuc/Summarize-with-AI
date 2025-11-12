@@ -5,7 +5,7 @@ export function showLoading(loadingElement, container, show) {
     loadingElement.style.display = show ? "block" : "none";
   }
   if (container) {
-    container.style.display = show ? "none" : "block";
+    container.style.display = show ? "none" : "";
   }
 }
 
@@ -14,7 +14,7 @@ export function showNoResults(noResultsElement, container, show) {
     noResultsElement.style.display = show ? "block" : "none";
   }
   if (container) {
-    container.style.display = show ? "none" : "block";
+    container.style.display = show ? "none" : "";
   }
 }
 
@@ -52,14 +52,14 @@ export function showError(container, message) {
   container.innerHTML = `
     <div class="error-message" style="text-align: center; padding: 2rem; color: #e53e3e;">
       <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-      <h3>An error occurred</h3>
+      <h3>Đã xảy ra lỗi</h3>
       <p>${escapeHtml(message)}</p>
       <button
         type="button"
         style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;"
         onclick="location.reload()"
       >
-        Refresh page
+        Tải lại trang
       </button>
     </div>
   `;
@@ -67,10 +67,10 @@ export function showError(container, message) {
 
 function getRandomLoadingMessage() {
   const loadingTexts = [
-    "Loading latest news...",
-    "Updating data...",
-    "Loading content...",
-    "Processing information...",
+    "Đang tải tin nóng...",
+    "Đang đồng bộ dữ liệu...",
+    "Hệ thống đang xử lý...",
+    "Chuẩn bị tin tức cho bạn...",
   ];
   const randomIndex = Math.floor(Math.random() * loadingTexts.length);
   return loadingTexts[randomIndex];

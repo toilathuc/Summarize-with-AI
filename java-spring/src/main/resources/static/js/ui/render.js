@@ -1,4 +1,5 @@
 import { escapeHtml } from "../utils/html.js";
+import { extractDomain } from "../utils/url.js";
 
 const TYPE_ICONS = {
   news: "fas fa-newspaper",
@@ -9,11 +10,11 @@ const TYPE_ICONS = {
 };
 
 const TYPE_COLORS = {
-  news: "#3b82f6",
-  announcement: "#10b981",
-  video: "#f59e0b",
-  howto: "#8b5cf6",
-  troubleshooting: "#ef4444",
+  news: "#60a5fa",
+  announcement: "#34d399",
+  video: "#fbbf24",
+  howto: "#a78bfa",
+  troubleshooting: "#f87171",
 };
 
 const TYPE_LABELS = {
@@ -36,7 +37,7 @@ export function renderNews(container, items) {
 
   container.innerHTML = items.map(createNewsItemHTML).join("");
 
-  const newsItems = container.querySelectorAll(".news-item");
+  const newsItems = container.querySelectorAll(".news-card");
   newsItems.forEach((element, index) => {
     element.addEventListener("click", () => {
       const url = items[index]?.url;
@@ -51,46 +52,54 @@ function createNewsItemHTML(item) {
   const type = item.type || "news";
   const typeIcon = TYPE_ICONS[type] || "fas fa-file-text";
   const typeColor = TYPE_COLORS[type] || "#667eea";
-  const typeLabel = TYPE_LABELS[type] || "Khác";
+  const typeLabel = TYPE_LABELS[type] || "Loại khác";
 
   const bullets = Array.isArray(item.bullets) ? item.bullets : [];
   const whyItMatters = item.why_it_matters || "";
+  const domain = extractDomain(item.url);
+  const source = domain || item.source || item.publisher || "Techmeme";
 
   return `
-    <article class="news-item" data-type="${escapeHtml(type)}" style="--type-color: ${typeColor}">
-      <div class="news-header">
-        <h2 class="news-title">${escapeHtml(item.title || "")}</h2>
-        <span class="news-type">
-          <i class="${typeIcon}"></i>
+    <article class="news-card" data-type="${escapeHtml(
+      type
+    )}" style="--type-color: ${typeColor}">
+      <header class="news-card__header">
+        <span class="news-chip">
+          <span class="news-chip__dot"></span>
           ${typeLabel}
         </span>
-      </div>
-      <div class="news-bullets">
-        <ul>
+        <i class="${typeIcon} news-card__icon" aria-hidden="true"></i>
+      </header>
+      <h2 class="news-card__title">${escapeHtml(item.title || "")}</h2>
+      ${
+        bullets.length
+          ? `<ul class="news-card__bullets">
           ${bullets
             .map((bullet) => `<li>${escapeHtml(bullet)}</li>`)
             .join("")}
-        </ul>
-      </div>
+        </ul>`
+          : ""
+      }
       ${
         whyItMatters
           ? `
-        <div class="why-matters">
-          <div class="why-matters-title">Tại sao quan trọng?</div>
-          <div class="why-matters-text">${escapeHtml(whyItMatters)}</div>
+        <div class="insight-card">
+          <p class="insight-label">Vì sao quan trọng</p>
+          <p>${escapeHtml(whyItMatters)}</p>
         </div>
       `
           : ""
       }
-      <div class="news-footer">
+      <footer class="news-card__footer">
+        <span class="news-card__source">${escapeHtml(source)}</span>
         <a href="${escapeHtml(item.url || "#")}"
-           class="read-more"
+           class="news-card__cta"
            target="_blank"
            rel="noopener noreferrer"
            onclick="event.stopPropagation()">
-          Đọc bài gốc <i class="fas fa-external-link-alt"></i>
+          Mở bài gốc <i class="fas fa-arrow-up-right-from-square"></i>
         </a>
-      </div>
+      </footer>
     </article>
   `;
 }

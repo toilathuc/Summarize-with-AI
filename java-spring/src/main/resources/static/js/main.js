@@ -87,7 +87,7 @@ async function bootstrap(elements) {
     console.error("Error loading news data:", error);
     showError(
       elements.newsContainer,
-      "Unable to load news data. Please try again later."
+      "Không thể tải dữ liệu. Vui lòng thử lại sau."
     );
   } finally {
     showLoading(elements.loadingElement, elements.newsContainer, false);
@@ -158,16 +158,16 @@ async function handleRefresh(elements) {
     }
 
     const totalItems = state.newsData.length;
-    let successMessage = `Loaded ${totalItems} articles`;
+    let successMessage = `Đã tải ${totalItems} bài viết`;
 
     // Show freshness info
     if (data.freshness) {
-      successMessage += ` (updated ${data.freshness})`;
+      successMessage += ` (cập nhật ${data.freshness})`;
     }
 
     // Add stale indicator if needed
     if (data.isStale) {
-      successMessage += ` data is stale`;
+      successMessage += ` - dữ liệu có thể đã cũ`;
     } else {
       successMessage += ` ✅`;
     }
@@ -193,7 +193,7 @@ async function handleRefresh(elements) {
     }
 
     showRefreshError(
-      error.message || "Unable to update data. Please try again later."
+      error.message || "Không thể làm mới dữ liệu. Vui lòng thử lại sau."
     );
 
     // Reset button after 5 seconds on error

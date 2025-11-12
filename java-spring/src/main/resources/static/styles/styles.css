@@ -228,13 +228,17 @@ body {
 }
 
 .feed__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-  gap: 2rem;
+  column-width: 330px;
+  column-gap: 2rem;
+  column-fill: balance;
 }
 
 .news-card {
   position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0 0 2rem;
   padding: 1.5rem;
   border-radius: 1.5rem;
   background: var(--card-bg);
@@ -242,6 +246,7 @@ body {
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  break-inside: avoid;
 }
 
 .news-card::after {
@@ -461,6 +466,11 @@ body {
 @media (max-width: 720px) {
   .panel {
     padding: 1.5rem;
+  }
+
+  .feed__grid {
+    column-count: 1;
+    column-gap: 0;
   }
 
   .refresh-btn {

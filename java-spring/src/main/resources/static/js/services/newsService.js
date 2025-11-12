@@ -1,4 +1,5 @@
 const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by the backend
+const REFRESH_API = "/api/refresh";
 
 // Slow `/api/refresh` endpoints were retired. Admins should run
 // `python update_news.py` (or the Windows batch) whenever they need fresh data.
@@ -29,6 +30,25 @@ export async function refreshNewsFast() {
     console.error("Fast refresh error:", error);
     throw error;
   }
+}
+
+export async function triggerFullRefresh(top = 20) {
+  const url = `${REFRESH_API}?top=${encodeURIComponent(top)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Refresh endpoint failed (${response.status}) ${text || ""}`.trim()
+    );
+  }
+
+  return response.json();
 }
 
 /**

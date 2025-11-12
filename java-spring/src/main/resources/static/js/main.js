@@ -1,4 +1,8 @@
-﻿import { fetchNewsData, refreshNewsFast } from "./services/newsService.js";
+﻿import {
+  fetchNewsData,
+  refreshNewsFast,
+  triggerFullRefresh,
+} from "./services/newsService.js";
 import { applyFilters } from "./filters.js";
 import { renderNews } from "./ui/render.js";
 import { updateStats, updateLastUpdated } from "./ui/stats.js";
@@ -118,15 +122,21 @@ async function handleRefresh(elements) {
     return;
   }
 
-  showLoadingOverlay(loadingOverlay, true, "Loading new data...");
+  showLoadingOverlay(
+    loadingOverlay,
+    true,
+    "Đang thu thập bài viết mới từ Techmeme..."
+  );
 
   refreshBtn.classList.add("loading");
   refreshBtn.disabled = true;
 
   try {
-    console.log("Starting fast refresh...");
+    console.log("Starting full refresh via backend pipeline...");
+    const refreshResult = await triggerFullRefresh();
+    console.log("Backend refresh finished:", refreshResult);
 
-    // Use fast refresh by default
+    console.log("Fetching latest cached data...");
     const data = await refreshNewsFast();
 
     console.log("Fast refresh completed:", {
@@ -158,7 +168,10 @@ async function handleRefresh(elements) {
     }
 
     const totalItems = state.newsData.length;
-    let successMessage = `Đã tải ${totalItems} bài viết`;
+    let successMessage = `Đã tải ${totalItems} bài viết mới`;
+    if (refreshResult?.job_id) {
+      successMessage += ` (job ${refreshResult.job_id.slice(0, 8)}…)`;
+    }
 
     // Show freshness info
     if (data.freshness) {

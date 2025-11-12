@@ -169,21 +169,6 @@ async function handleRefresh(elements) {
 
     const totalItems = state.newsData.length;
     let successMessage = `Đã tải ${totalItems} bài viết mới`;
-    if (refreshResult?.job_id) {
-      successMessage += ` (job ${refreshResult.job_id.slice(0, 8)}…)`;
-    }
-
-    // Show freshness info
-    if (data.freshness) {
-      successMessage += ` (cập nhật ${data.freshness})`;
-    }
-
-    // Add stale indicator if needed
-    if (data.isStale) {
-      successMessage += ` - dữ liệu có thể đã cũ`;
-    } else {
-      successMessage += ` ✅`;
-    }
 
     showRefreshSuccess(successMessage);
 

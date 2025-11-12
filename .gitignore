@@ -245,6 +245,7 @@ recordings/
 build/
 dist/
 out/
+target/
 .next/
 .nuxt/
 .output/

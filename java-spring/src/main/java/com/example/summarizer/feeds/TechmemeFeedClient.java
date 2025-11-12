@@ -3,6 +3,8 @@ package com.example.summarizer.feeds;
 import com.example.summarizer.domain.FeedArticle;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jsoup.Jsoup;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +18,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -75,8 +78,9 @@ public class TechmemeFeedClient {
             Node node = items.item(i);
             if (!(node instanceof Element element)) continue;
             String title = textOf(element, "title");
-            String link = textOf(element, "link");
-            String desc = sanitizeDescription(textOf(element, "description"));
+            String descriptionRaw = textOf(element, "description");
+            String link = selectArticleLink(descriptionRaw, textOf(element, "link"));
+            String desc = sanitizeDescription(descriptionRaw);
             if ((title == null || title.isBlank()) && (link == null || link.isBlank())) {
                 continue;
             }
@@ -116,6 +120,43 @@ public class TechmemeFeedClient {
         if (raw == null) return null;
         String withoutTags = raw.replaceAll("(?s)<[^>]+>", " ");
         return withoutTags.replaceAll("\s+", " ").trim();
+    }
+
+    private String selectArticleLink(String descriptionHtml, String fallbackLink) {
+        String preferred = extractExternalLink(descriptionHtml);
+        if (preferred != null && !preferred.isBlank()) {
+            return preferred;
+        }
+        return fallbackLink;
+    }
+
+    private String extractExternalLink(String descriptionHtml) {
+        if (descriptionHtml == null || descriptionHtml.isBlank()) {
+            return null;
+        }
+        try {
+            org.jsoup.nodes.Document fragment = Jsoup.parseBodyFragment(descriptionHtml);
+            Elements anchors = fragment.select("a[href]");
+            for (org.jsoup.nodes.Element anchor : anchors) {
+                String href = anchor.attr("href").trim();
+                if (href.isBlank()) {
+                    continue;
+                }
+                if (isTechmemeLink(href)) {
+                    continue;
+                }
+                return href;
+            }
+        } catch (Exception ex) {
+            logger.debug("Failed to extract external link from Techmeme description: {}", ex.getMessage());
+            logger.trace("Techmeme description parsing exception", ex);
+        }
+        return null;
+    }
+
+    private boolean isTechmemeLink(String href) {
+        String lower = href.toLowerCase(Locale.ROOT);
+        return lower.contains("techmeme.com");
     }
 
     private List<FeedArticle> readFromSample(Integer limit) throws IOException {

@@ -2,48 +2,51 @@ package com.example.summarizer.pipelines;
 
 import com.example.summarizer.domain.SummaryPayload;
 import com.example.summarizer.domain.SummaryResult;
-import com.example.summarizer.service.FeedService;
-import com.example.summarizer.service.SummarizationOrchestrator;
-import com.example.summarizer.service.StorageService;
+import com.example.summarizer.ports.ClockPort;
+import com.example.summarizer.ports.FeedPort;
+import com.example.summarizer.ports.RefreshNewsUseCase;
+import com.example.summarizer.ports.SummarizeUseCase;
+import com.example.summarizer.ports.SummaryStorePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
-public class NewsPipeline {
+public class NewsPipeline implements RefreshNewsUseCase {
 
     private static final Logger logger = LoggerFactory.getLogger(NewsPipeline.class);
 
-    private final FeedService feedService;
-    private final SummarizationOrchestrator orchestrator;
-    private final StorageService storageService;
+    private final FeedPort feedPort;
+    private final SummarizeUseCase summarizer;
+    private final SummaryStorePort summaryStore;
+    private final ClockPort clock;
 
-    public NewsPipeline(FeedService feedService, SummarizationOrchestrator orchestrator, StorageService storageService) {
-        this.feedService = feedService;
-        this.orchestrator = orchestrator;
-        this.storageService = storageService;
+    public NewsPipeline(FeedPort feedPort, SummarizeUseCase summarizer, SummaryStorePort summaryStore, ClockPort clock) {
+        this.feedPort = feedPort;
+        this.summarizer = summarizer;
+        this.summaryStore = summaryStore;
+        this.clock = clock;
     }
 
+    @Override
     public java.nio.file.Path run(int topN) throws Exception {
-        List<com.example.summarizer.domain.FeedArticle> articles = feedService.fetchLatest(topN);
+        List<com.example.summarizer.domain.FeedArticle> articles = feedPort.fetchLatest(topN);
         Map<String, SummaryResult> cache = loadSummaryCache();
-        List<SummaryResult> summaries = orchestrator.summarize(articles, cache);
+        List<SummaryResult> summaries = summarizer.summarize(articles, cache);
 
         Map<String, Object> extra = new HashMap<>();
-        extra.put("last_updated", java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString());
+        extra.put("last_updated", clock.nowUtc().toString());
         extra.put("total_items", summaries.size());
 
-        return storageService.save(summaries, extra);
+        return summaryStore.save(summaries, extra);
     }
 
     private Map<String, SummaryResult> loadSummaryCache() {
         try {
-            SummaryPayload payload = storageService.loadExisting();
+            SummaryPayload payload = summaryStore.loadExisting();
             if (payload == null || payload.getSummaries() == null || payload.getSummaries().isEmpty()) {
                 return Map.of();
             }

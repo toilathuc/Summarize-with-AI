@@ -1,6 +1,6 @@
 package com.example.summarizer.tools;
 
-import com.example.summarizer.pipelines.NewsPipeline;
+import com.example.summarizer.ports.RefreshNewsUseCase;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class UpdateNewsRunner implements CommandLineRunner {
 
-    private final NewsPipeline pipeline;
+    private final RefreshNewsUseCase pipeline;
 
     @Value("${update.now:false}")
     private boolean updateNow;
@@ -16,7 +16,7 @@ public class UpdateNewsRunner implements CommandLineRunner {
     @Value("${update.top:25}")
     private int top;
 
-    public UpdateNewsRunner(NewsPipeline pipeline) {
+    public UpdateNewsRunner(RefreshNewsUseCase pipeline) {
         this.pipeline = pipeline;
     }
 

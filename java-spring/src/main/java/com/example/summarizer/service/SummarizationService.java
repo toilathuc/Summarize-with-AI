@@ -1,7 +1,9 @@
 package com.example.summarizer.service;
 
 import com.example.summarizer.domain.SummaryPayload;
-import org.springframework.stereotype.Service;
+import com.example.summarizer.ports.ClockPort;
+import com.example.summarizer.ports.LoadSummariesQuery;
+import com.example.summarizer.ports.SummaryStorePort;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -11,17 +13,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
-public class SummarizationService {
+public class SummarizationService implements LoadSummariesQuery {
 
-    private final StorageService storageService;
+    private final SummaryStorePort summaryStore;
+    private final ClockPort clock;
 
-    public SummarizationService(StorageService storageService) {
-        this.storageService = storageService;
+    public SummarizationService(SummaryStorePort summaryStore, ClockPort clock) {
+        this.summaryStore = summaryStore;
+        this.clock = clock;
     }
 
+    @Override
     public Map<String, Object> getSummaries() throws IOException {
-        SummaryPayload payload = storageService.loadExisting();
+        SummaryPayload payload = summaryStore.loadExisting();
         if (payload == null) {
             throw new IOException("No summaries cached yet. Please run the pipeline first.");
         }
@@ -43,22 +47,22 @@ public class SummarizationService {
         return response;
     }
 
-    private static boolean checkIfStale(String lastUpdatedStr, int thresholdMinutes) {
+    private boolean checkIfStale(String lastUpdatedStr, int thresholdMinutes) {
         if (lastUpdatedStr == null || lastUpdatedStr.isBlank()) return true;
         try {
             OffsetDateTime last = OffsetDateTime.parse(lastUpdatedStr.replace("Z", "+00:00"));
-            Duration age = Duration.between(last, OffsetDateTime.now(last.getOffset()));
+            Duration age = Duration.between(last, clock.nowUtc());
             return age.toMinutes() > thresholdMinutes;
         } catch (DateTimeParseException | NullPointerException ex) {
             return true;
         }
     }
 
-    private static String calculateAge(String lastUpdatedStr) {
+    private String calculateAge(String lastUpdatedStr) {
         if (lastUpdatedStr == null || lastUpdatedStr.isBlank()) return "Unknown";
         try {
             OffsetDateTime last = OffsetDateTime.parse(lastUpdatedStr.replace("Z", "+00:00"));
-            Duration age = Duration.between(last, OffsetDateTime.now(last.getOffset()));
+            Duration age = Duration.between(last, clock.nowUtc());
             long seconds = age.getSeconds();
             if (seconds < 60) return "Just now";
             if (seconds < 3600) return (seconds / 60) + " minutes ago";

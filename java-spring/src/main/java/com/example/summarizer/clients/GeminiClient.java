@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.example.summarizer.ports.SummarizerPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,7 @@ import java.time.Duration;
  * Minimal REST-based Gemini client with simple retry logic.
  * Endpoint URL is configurable; body is JSON: {"model":..., "prompt":...}
  */
-public class GeminiClient {
+public class GeminiClient implements SummarizerPort {
 
     private static final Logger logger = LoggerFactory.getLogger(GeminiClient.class);
 
@@ -54,6 +55,7 @@ public class GeminiClient {
     /**
      * Generate text for the given prompt. Returns the textual output (not raw JSON) when possible.
      */
+    @Override
     public String generate(String prompt) throws IOException, InterruptedException {
         String payload;
         if ("google".equalsIgnoreCase(provider)) {

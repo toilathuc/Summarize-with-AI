@@ -2,6 +2,7 @@ package com.example.summarizer.service;
 
 import com.example.summarizer.clients.FirecrawlClient;
 import com.example.summarizer.domain.FeedArticle;
+import com.example.summarizer.ports.ContentEnricherPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class ContentCrawlerService {
+public class ContentCrawlerService implements ContentEnricherPort {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentCrawlerService.class);
 

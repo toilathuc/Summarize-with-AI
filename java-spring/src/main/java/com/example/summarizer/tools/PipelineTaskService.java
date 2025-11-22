@@ -1,6 +1,6 @@
 package com.example.summarizer.tools;
 
-import com.example.summarizer.pipelines.NewsPipeline;
+import com.example.summarizer.ports.RefreshNewsUseCase;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
@@ -13,9 +13,9 @@ import java.nio.file.Path;
 @Service
 public class PipelineTaskService {
 
-    private final NewsPipeline pipeline;
+    private final RefreshNewsUseCase pipeline;
 
-    public PipelineTaskService(NewsPipeline pipeline) {
+    public PipelineTaskService(RefreshNewsUseCase pipeline) {
         this.pipeline = pipeline;
     }
 

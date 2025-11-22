@@ -2,6 +2,7 @@ package com.example.summarizer.service;
 
 import com.example.summarizer.domain.SummaryPayload;
 import com.example.summarizer.domain.SummaryResult;
+import com.example.summarizer.ports.SummaryStorePort;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +27,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 @Service
-public class StorageService {
+public class StorageService implements SummaryStorePort {
 
     private static final Logger logger = Logger.getLogger(StorageService.class.getName());
 
@@ -82,6 +83,7 @@ public class StorageService {
         return save(summaries, Map.of());
     }
 
+    @Override
     public Path save(List<SummaryResult> summaries, Map<String, Object> extra) throws IOException {
         List<SummaryResult> safeSummaries = summaries == null ? List.of() : summaries;
         Map<String, Object> metadata = new HashMap<>();
@@ -149,6 +151,7 @@ public class StorageService {
         }
     }
 
+    @Override
     public SummaryPayload loadExisting() throws IOException {
         try (Connection conn = dataSource.getConnection()) {
             List<SummaryResult> summaries = fetchSummaries(conn);

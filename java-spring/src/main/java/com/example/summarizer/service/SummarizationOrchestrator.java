@@ -1,9 +1,10 @@
 package com.example.summarizer.service;
 
-import com.example.summarizer.clients.GeminiClient;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.domain.SummaryRequest;
 import com.example.summarizer.domain.SummaryResult;
+import com.example.summarizer.ports.SummarizeUseCase;
+import com.example.summarizer.ports.SummarizerPort;
 import com.example.summarizer.utils.ChunkUtils;
 import com.example.summarizer.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,25 +20,27 @@ import java.util.Map;
 /**
  * Port of the Python SummarizationService orchestration logic.
  */
-public class SummarizationOrchestrator {
+public class SummarizationOrchestrator implements SummarizeUseCase {
 
     private static final Logger logger = LoggerFactory.getLogger(SummarizationOrchestrator.class);
 
-    private final GeminiClient client;
+    private final SummarizerPort client;
     private final String promptTemplate;
     private final int batchSize;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public SummarizationOrchestrator(GeminiClient client, String promptTemplate, int batchSize) {
+    public SummarizationOrchestrator(SummarizerPort client, String promptTemplate, int batchSize) {
         this.client = client;
         this.promptTemplate = promptTemplate;
         this.batchSize = Math.max(1, batchSize);
     }
 
+    @Override
     public List<SummaryResult> summarize(List<FeedArticle> articles) throws Exception {
         return summarize(articles, null);
     }
 
+    @Override
     public List<SummaryResult> summarize(List<FeedArticle> articles, Map<String, SummaryResult> cache) throws Exception {
         Map<String, SummaryResult> safeCache = cache == null ? Map.of() : cache;
         List<SummaryResult> orderedResults = new ArrayList<>(Collections.nCopies(articles.size(), null));

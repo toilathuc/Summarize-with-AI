@@ -1,6 +1,6 @@
 package com.example.summarizer.controller;
 
-import com.example.summarizer.service.SummarizationService;
+import com.example.summarizer.ports.LoadSummariesQuery;
 import org.slf4j.MDC;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +13,9 @@ import java.util.Map;
 @RestController
 public class SummariesController {
 
-    private final SummarizationService service;
+    private final LoadSummariesQuery service;
 
-    public SummariesController(SummarizationService service) {
+    public SummariesController(LoadSummariesQuery service) {
         this.service = service;
     }
 

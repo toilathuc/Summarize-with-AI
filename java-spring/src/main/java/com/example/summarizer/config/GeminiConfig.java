@@ -1,6 +1,8 @@
 package com.example.summarizer.config;
 
 import com.example.summarizer.clients.GeminiClient;
+import com.example.summarizer.ports.SummarizeUseCase;
+import com.example.summarizer.ports.SummarizerPort;
 import com.example.summarizer.service.SummarizationOrchestrator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +33,7 @@ public class GeminiConfig {
     private String promptTemplate;
 
     @Bean
-    public GeminiClient geminiClient() {
+    public SummarizerPort geminiClient() {
         // If provider is google and the endpoint is still the placeholder, set the Google Generative API endpoint
         String effectiveEndpoint = endpoint;
         if ("google".equalsIgnoreCase(provider)) {
@@ -49,7 +51,7 @@ public class GeminiConfig {
     private boolean useApiKeyAsQuery;
 
     @Bean
-    public SummarizationOrchestrator summarizationOrchestrator(GeminiClient client) {
+    public SummarizeUseCase summarizationOrchestrator(SummarizerPort client) {
         return new SummarizationOrchestrator(client, promptTemplate, batchSize);
     }
 }

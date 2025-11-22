@@ -1,6 +1,7 @@
 package com.example.summarizer.repository;
 
 import com.example.summarizer.domain.FeedArticle;
+import com.example.summarizer.ports.ArticleStorePort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.sqlite.SQLiteDataSource;
@@ -20,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-public class ArticleRepository {
+public class ArticleRepository implements ArticleStorePort {
 
     private final Path databasePath;
     private final SQLiteDataSource dataSource;
@@ -65,6 +66,7 @@ public class ArticleRepository {
         }
     }
 
+    @Override
     public List<FeedArticle> fetchLatest(Integer limit) throws IOException {
         List<FeedArticle> articles = new ArrayList<>();
         StringBuilder sql = new StringBuilder("SELECT title, url, content FROM articles ORDER BY created_at DESC, id DESC");
@@ -94,6 +96,7 @@ public class ArticleRepository {
         return articles;
     }
 
+    @Override
     public void replaceAll(List<FeedArticle> articles, String source) throws IOException {
         String now = OffsetDateTime.now(ZoneOffset.UTC).toString();
         try (Connection conn = dataSource.getConnection()) {
@@ -111,6 +114,7 @@ public class ArticleRepository {
         }
     }
 
+    @Override
     public boolean isEmpty() throws IOException {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();

@@ -26,23 +26,25 @@
   <body>
     <main class="dashboard">
       <section class="panel masthead">
-        <div class="masthead__content">
-          <p class="eyebrow">Bản tin mỗi ngày</p>
-          <div class="masthead__title">
-            <h1>Tổng hợp tin công nghệ</h1>
-            <p>Skim Techmeme cực nhanh cùng phần tóm tắt AI bằng tiếng Việt.</p>
+        <div class="masthead__header">
+          <div class="masthead__content">
+            <p class="eyebrow">Bản tin mỗi ngày</p>
+            <div class="masthead__title">
+              <h1>Tổng hợp tin công nghệ</h1>
+              <p>Skim Techmeme cực nhanh cùng phần tóm tắt AI bằng tiếng Việt.</p>
+            </div>
           </div>
-        </div>
-        <div class="masthead__actions">
-          <button
-            type="button"
-            id="refresh-btn"
-            class="refresh-btn"
-            title="Refresh data"
-          >
-            <i class="fas fa-sync-alt refresh-icon" aria-hidden="true"></i>
-            <span>Làm mới nguồn tin</span>
-          </button>
+          <div class="masthead__actions">
+            <button
+              type="button"
+              id="refresh-btn"
+              class="refresh-btn"
+              title="Refresh data"
+            >
+              <i class="fas fa-sync-alt refresh-icon" aria-hidden="true"></i>
+              <span>Làm mới nguồn tin</span>
+            </button>
+          </div>
         </div>
         <div class="stat-grid">
           <article class="stat-card">
@@ -54,35 +56,6 @@
             <p class="stat-value" id="total-items">0 bài viết</p>
           </article>
         </div>
-      </section>
-
-      <section class="panel filters" aria-label="Filters">
-        <form class="filters__form">
-          <label class="field">
-            <span class="field__label">Loại tin</span>
-            <select id="type-filter" name="type-filter">
-              <option value="">Tất cả</option>
-              <option value="news">Tin tức</option>
-              <option value="announcement">Thông báo</option>
-              <option value="video">Video</option>
-              <option value="howto">Hướng dẫn</option>
-              <option value="troubleshooting">Khắc phục</option>
-            </select>
-          </label>
-          <label class="field">
-            <span class="field__label">Tìm kiếm</span>
-            <div class="field__input">
-              <i class="fas fa-search" aria-hidden="true"></i>
-              <input
-                type="search"
-                id="search-input"
-                name="search"
-                placeholder="Tìm kiếm từ khóa"
-                autocomplete="off"
-              />
-            </div>
-          </label>
-        </form>
       </section>
 
       <section id="loading" class="panel loading-state" style="display: none">

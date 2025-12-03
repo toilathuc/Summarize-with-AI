@@ -1,231 +1,284 @@
-# Tech News Summarizer
+🧠 TECH NEWS SUMMARIZER – FULL README (A → Z)
 
-An AI powered news aggregation project that monitors Techmeme, summarises the latest headlines with Google Gemini, and serves the results in a modern web interface.
+Spring Boot + Redis + SQLite + Firecrawl + Gemini + React (Vite)
 
-## ⚡ **NEW: Refresh Optimization (Oct 2025)**
+📌 1. Giới thiệu
 
-**60-90x faster refresh!** User clicks "Làm mới" → Data appears in < 1 second ⚡
+Tech News Summarizer là một hệ thống tự động:
 
-- **Before:** Every refresh fetched from Techmeme + AI summarization (30-90s wait)
-- **After:** Fast reload from file (<1s) + Smart admin-controlled updates
+Lấy tin tức từ Techmeme RSS.
 
-📖 **Quick Guide:**
+Crawl nội dung thật bằng Firecrawl.
 
-- **Users:** Click "Làm mới" → Instant reload (<1s)
-- **Admins:** Run `python update_news.py` when you want fresh data
+Tóm tắt bằng Gemini (Google AI).
 
-📚 **Documentation:**
+Lưu dữ liệu vào SQLite + Redis.
 
-- `docs/QUICK_SUMMARY.md` - 2-minute overview
-- `docs/REFRESH_IMPLEMENTATION.md` - Full technical details
-- `docs/ADMIN_GUIDE.md` - Admin workflow guide
-- `docs/TESTING_CHECKLIST.md` - Testing procedures
+Cung cấp REST API cho frontend.
 
----
+Có scheduler tự refresh định kỳ.
 
-## Table of Contents
+Có manual refresh kèm rate-limit & Redis lock.
 
-1. [Highlights](#highlights)
-2. [Repository Layout](#repository-layout)
-3. [Prerequisites](#prerequisites)
-4. [Quick Start](#quick-start)
-5. [Updating the Data](#updating-the-data)
-6. [Configuration](#configuration)
-7. [Available Scripts](#available-scripts)
-8. [FastAPI Endpoints](#fastapi-endpoints)
-9. [Troubleshooting](#troubleshooting)
-10. [Next Steps & Contributions](#next-steps--contributions)
+👉 Hệ thống gồm:
 
----
+Backend (/backend): Spring Boot
 
-## Highlights
+Frontend (/frontend): React (Vite)
 
-- **⚡ Fast Refresh:** < 1 second UI reload (new optimization!)
-- Real-time Techmeme feed ingestion with resilient HTTP retry logic.
-- AI summarisation powered by Google Gemini (configurable model + batching).
-- FastAPI backend with `/api/summaries` for instant reloads, while admins refresh data via `update_news.py`
-- Responsive frontend with live refresh button, search, filters, and statistics.
-- **Correlation ID middleware** for distributed tracing
-- Utility scripts for full AI refresh, quick non-AI updates, and smoke tests.
-- Configuration centralised through `src/config/settings.py` (dotenv ready).
+Redis: rate-limit, lock, cache
 
----
+SQLite: database local để lưu article & summaries
 
-## Repository Layout
+📌 2. Yêu cầu hệ thống
+Backend
 
-```
-e:\Viscode\Demo_Skola/
-├── README.md                     # Project documentation (this file)
-├── .env                          # Local environment variables (not committed)
-├── news.html                     # Frontend entry point
-├── styles.css                    # Global styling
-├── js/                           # Frontend logic & utilities
-│   ├── main.js                   # Bootstrap & UI orchestration
-│   └── services/newsService.js   # Fast refresh + backend update
-├── summaries.json                # Data consumed by the frontend
-├── start_fastapi.bat             # Helper to launch the API server
-├── quick_start.bat               # Windows quick-start convenience script
-├── update_news.py                # Full AI update pipeline CLI (admin use)
-├── simple_update.py              # Lightweight refresh without AI
-├── quick_refresh.py              # Smoke test (touch timestamp only)
-├── test_fast_refresh.py          # Test script for fast endpoint (NEW)
-├── requirements.txt              # Python dependency set
-├── src/
-│   ├── api/app.py                # FastAPI application
-│   ├── clients/gemini.py         # Google Gemini wrapper
-│   ├── config/settings.py        # Settings dataclasses & `.env` loading
-│   ├── domain/models.py          # Core datamodels (FeedArticle, SummaryResult, …)
-│   ├── feeds/techmeme.py         # Legacy helper CLI for Techmeme
-│   ├── feeds/techmeme/client.py  # Production Techmeme feed client
-│   ├── pipelines/news_pipeline.py# Orchestrated fetch → summarise → persist flow
-│   └── services/                 # Feed, storage, and summarisation services
-└── docs/                         # Additional documentation
-```
+Java 17 hoặc 21
 
----
+Maven 3.8+
 
-## Prerequisites
+Redis (Linux/macOS dùng redis-server, Windows dùng Memurai)
 
-- **Python**: 3.10 or newer (project tested on 3.13).
-- **Google Gemini API key** (free tier available).
-- Optional: PowerShell on Windows for `.bat` helpers.
+Frontend
 
----
+Node.js ≥ 18
 
-## Quick Start
+npm ≥ 9
 
-1. **Clone and enter the project directory**
+API Keys bắt buộc
 
-   ```powershell
-   git clone <repo> e:\Viscode\Demo_Skola
-   cd e:\Viscode\Demo_Skola
-   ```
+Bạn cần 2 API key:
 
-2. **Create and populate `.env`**
+Gemini API key – Google AI Studio
 
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   # Optional overrides:
-   # GEMINI_MODEL=gemini-2.0-flash
-   # TECHMEME_FEED_URL=https://www.techmeme.com/feed.xml
-   ```
+Firecrawl API key – firecrawl.dev
 
-3. **Create a virtual environment (recommended)**
+Không commit key vào Git.
 
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
+📌 3. Clone Project
+git clone <repo>
+cd summarizer-project
 
-4. **Install dependencies**
+📌 4. Cấu hình môi trường
+4.1. Export API keys
+macOS / Linux
+export GEMINI_API_KEY="your-gemini-key"
+export FIRECRAWL_API_KEY="your-firecrawl-key"
 
-   ```powershell
-   pip install -r requirements.txt
-   ```
+Windows PowerShell
+$env:GEMINI_API_KEY="your-gemini-key"
+$env:FIRECRAWL_API_KEY="your-firecrawl-key"
 
-5. **Generate initial data** (ensures `summaries.json` exists)
+4.2. Start Redis
+Linux/macOS
+redis-server
 
-   ```powershell
-   py update_news.py --top 25
-   ```
+Windows (Memurai)
 
-6. **Start the FastAPI server**
+Ví dụ : & "C:\Program Files\Memurai\memurai-cli.exe"
+127.0.0.1:6379> ping
+PONG
+127.0.0.1:6379>
 
-   ```powershell
-   start_fastapi.bat
-   # or
-   uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
-   ```
+Cài Memurai Community
 
-7. **Open the site**  
-   Navigate to `http://localhost:8000` to browse the latest summaries.
+Chạy: Memurai Server (mặc định port 6379)
 
----
+4.3. Backend config (application.properties)
 
-## Updating the Data
+File ở:
+/backend/src/main/resources/application.properties
 
-| Command                                | Description                                                                                               |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `py -3.13 update_news.py --top 25`     | Full pipeline: fetch feed, summarise with Gemini, copy to `summaries.json`.                               |
-| `py -3.13 simple_update.py --limit 15` | Fast, non-AI refresh useful for demos or when the API key is unavailable.                                 |
-| `py -3.13 quick_refresh.py`            | Touches `summaries.json` (updates timestamp/first title) for smoke testing.                               |
-| Frontend refresh button                | Calls `/api/summaries` for a fast file reload (no AI). Run `update_news.py` first to generate fresh data. |
+server.port=8080
 
-**Tip:** The FastAPI server automatically serves the latest `summaries.json`, so refreshing the browser (or clicking the floating refresh button) updates the UI after any of the commands above complete.
+# Redis
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+redis.key-prefix=summarizer
 
----
+# Gemini
+gemini.apiKey=${GEMINI_API_KEY:}
+gemini.provider=google
+gemini.model=gemini-flash-latest
+gemini.useApiKeyAsQuery=true
+gemini.maxRetries=2
+gemini.endpoint=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent
 
-## Configuration
+# Firecrawl
+firecrawl.apiKey=${FIRECRAWL_API_KEY:}
+firecrawl.endpoint=https://api.firecrawl.dev/v1/scrape
+firecrawl.timeout.ms=20000
 
-All configuration flows through `src/config/settings.py`. Important keys:
+# SQLite
+storage.database-path=./data/feeds/articles.db
+storage.summaries-path=./data/outputs/summaries.db
 
-| Environment Variable      | Description                                                        | Default                             |
-| ------------------------- | ------------------------------------------------------------------ | ----------------------------------- |
-| `GEMINI_API_KEY`          | Required for AI summaries.                                         | none (raises error when missing)    |
-| `GEMINI_MODEL`            | Gemini model name.                                                 | `gemini-2.5-flash`                  |
-| `GEMINI_MAX_RETRIES`      | Retry attempts when Gemini API fails.                              | `3`                                 |
-| `GEMINI_BATCH_SIZE`       | Number of articles grouped per prompt.                             | `6`                                 |
-| `TECHMEME_FEED_URL`       | RSS source URL.                                                    | `https://www.techmeme.com/feed.xml` |
-| `TECHMEME_TIMEOUT`        | HTTP timeout in seconds.                                           | `12`                                |
-| `CRAWLER_UA`              | User-Agent string used for feed requests.                          | TechHubBot                          |
-| `SUMMARY_OUTPUT_PATH`     | Where the pipeline writes its JSON before copying to project root. | `data/outputs/summaries.json`       |
-| `SUMMARY_PROMPT_TEMPLATE` | Custom prompt template (optional).                                 | default multi-line prompt           |
+# Auto refresh (ms)
+refresh.interval.ms=600000   # 10 phút - đổi ý muốn tắt: đặt -1
 
-Settings load values from the environment, falling back to defaults. `.env` is read automatically for local development.
+# Summarizer
+summarizer.batchSize=8
+summarizer.promptTemplate=You are an assistant... {items_json}
 
----
+📌 5. Chạy backend
+cd backend
+mvn spring-boot:run
 
-## Available Scripts
 
-| Script                  | Purpose                                                                |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `start_fastapi.bat`     | Activates `.venv` (if present) and runs FastAPI with uvicorn.          |
-| `quick_start.bat`       | Performs safety checks and launches the server + browser.              |
-| `update_news.py`        | Main CLI for the AI-powered refresh workflow.                          |
-| `simple_update.py`      | Lightweight refresh that skips the AI step.                            |
-| `quick_refresh.py`      | Smoke test utility to keep UI feedback working.                        |
-| `src/feeds/techmeme.py` | Diagnostic CLI for fetching and optionally enriching Techmeme entries. |
+Nếu chạy thành công sẽ thấy:
 
----
+Started Application in X seconds
+Initializing Spring DispatcherServlet 'dispatcherServlet'
+Completed initialization
 
-## FastAPI Endpoints
+📌 6. Chạy frontend
+cd frontend
+npm install
+npm run dev
 
-| Method | Path              | Description                  |
-| ------ | ----------------- | ---------------------------- |
-| `GET`  | `/`               | Redirects to `news.html`.    |
-| `GET`  | `/news.html`      | Serves the frontend.         |
-| `GET`  | `/styles.css`     | Stylesheet.                  |
-| `GET`  | `/js/...`         | JavaScript modules.          |
-| `GET`  | `/summaries.json` | Latest summaries for the UI. |
-| `GET`  | `/healthz`        | Simple health probe.         |
 
-> Historical `/api/refresh` and `/api/refresh/status` endpoints have been removed for safety. If you need an HTTP trigger, wrap `update_news.py` behind an authenticated admin route.
+Truy cập:
+👉 http://localhost:5173
 
-Static directories (`/public`, `/styles`, `/js`) are mounted automatically when present.
+Nếu backend ở port khác, chỉnh file:
 
----
+/frontend/.env.local
 
-## Troubleshooting
+VITE_API_BASE_URL=http://localhost:8080
 
-| Problem                                  | Possible Fix                                                                                              |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `ValueError: GEMINI_API_KEY is required` | Ensure `.env` is populated and the variable is exported before running commands.                          |
-| `summaries.json` missing                 | Run `py -3.13 update_news.py --top 25` or copy `data\outputs\summaries.json` into the project root.       |
-| Port 8000 already in use                 | Stop the conflicting process (`Get-Process python                                                         | Stop-Process -Force`) or launch with `--port 8001`. |
-| Gemini failures / timeouts               | Check internet connection, API quota, or adjust `GEMINI_MAX_RETRIES` & `GEMINI_BATCH_SIZE`.               |
-| Refresh button spins forever             | Inspect FastAPI logs; verify `update_news.py` runs without errors (missing key, network issues, etc.).    |
-| Non-UTF8 artefacts in console            | Everything in the codebase is now ASCII-only. If issues persist, ensure the terminal encoding is `utf-8`. |
+📌 7. API chính
+7.1. Manual Refresh (gọi tóm tắt mới)
+POST /api/refresh?top=20
 
----
+Response – nếu job được bắt đầu
+{
+  "status": "started",
+  "running": true,
+  "correlation_id": "uuid",
+  "top": 20
+}
 
-## Next Steps & Contributions
+Nếu bị chặn vì job đang chạy
+{
+  "status": "running",
+  "message": "Refresh already in progress",
+  "reason": "manual_blocked_already_running"
+}
 
-- Explore the `docs/` directory for step-by-step run guides and refresh flow write-ups.
-- Extend the pipeline with additional sources (e.g. Hacker News, RSS feeds) by implementing new feed clients.
-- Add automated tests (e.g. pytest + FastAPI TestClient) to validate endpoints and services.
-- Containerise the stack (uvicorn + static files) or integrate with a task queue (Celery/Arq) for production refresh jobs.
-- Contributions are welcome—submit a PR with clear descriptions and test notes.
+Nếu bị rate-limit (spam quá nhanh)
+{
+  "status": "rate_limited",
+  "scope": "refresh"
+}
 
----
+7.2. Lấy trạng thái job hiện tại
+GET /api/refresh/status
 
-**Status**: Active development. For questions or ideas, open an issue or reach out to the maintainer.
+{
+  "running": false,
+  "lastRunAt": "2025-12-03T21:54:11Z",
+  "reason": "success"
+}
+
+7.3. Lấy danh sách summary
+GET /api/summaries
+
+
+Example:
+
+{
+  "total_items": 16,
+  "last_updated": "2025-12-03T12:20:11Z",
+  "items": [
+    {
+      "title": "Apple ra mắt chip AI mới...",
+      "bullets": ["Ý chính 1", "Ý chính 2"],
+      "url": "...",
+      "source": "techmeme"
+    }
+  ]
+}
+
+📌 8. Luồng hoạt động hệ thống
+✔ 1. Scheduled refresh
+
+Chạy theo interval (vd 10 phút)
+
+Nếu đang bận → skip (scheduled_skip_busy)
+
+✔ 2. Manual refresh
+
+Rate-limit: Redis
+
+Redis lock: chống chạy chồng pipeline
+
+Async chạy background
+
+FE poll status hoặc reload summaries
+
+✔ 3. Pipeline refresh
+
+Fetch RSS → diff 15 reused, 1 new
+
+Firecrawl enrich content
+
+Gemini summarize
+
+Lưu vào SQLite + SummaryStore
+
+Unlock redis và kết thúc
+
+📌 9. Thư mục quan trọng trong backend
+service/
+  ├── lock/                # RedisLockService
+  ├── ratelimit/           # RedisRateLimitService
+  ├── RefreshCoordinator   # Điều phối job refresh
+  ├── ScheduledRefresh...  # Tự động refresh
+  ├── FeedService          # Lấy RSS + diff
+  ├── ContentCrawler...    # Firecrawl
+  ├── Summarization...     # Gemini orchestrator
+
+ports/                     # Clean Architecture ports
+repository/                # SQLite repositories
+clients/                   # FirecrawlClient, GeminiClient
+
+
+Đây là kiến trúc kiểu Clean-Architecture + Hexagonal.
+
+📌 10. Troubleshooting
+❗ Lỗi 429 (trong log)
+
+Nguồn Firecrawl → bị rate-limit Firecrawl
+Giải pháp: tăng delay, giảm top, nâng plan Firecrawl.
+
+❗ Lỗi 429 từ API refresh
+
+Bạn spam refresh → Redis rate-limit đang hoạt động đúng.
+
+❗ Lỗi Redis connect refused
+
+Redis chưa chạy hoặc sai port.
+
+❗ Gemini trả lỗi 403/401
+
+Sai API key hoặc key không có quyền.
+
+📌 11. Lệnh tóm tắt (TL;DR)
+# Start Redis
+redis-server                # hoặc chạy Memurai
+
+# Backend
+cd backend
+export GEMINI_API_KEY="xxx"
+export FIRECRAWL_API_KEY="yyy"
+mvn spring-boot:run
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Test API
+curl -X POST http://localhost:8080/api/refresh?top=20
+curl http://localhost:8080/api/refresh/status
+curl http://localhost:8080/api/summaries

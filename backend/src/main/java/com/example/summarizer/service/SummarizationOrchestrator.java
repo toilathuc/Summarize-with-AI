@@ -5,7 +5,7 @@ import com.example.summarizer.domain.SummaryRequest;
 import com.example.summarizer.domain.SummaryResult;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
-import com.example.summarizer.utils.CacheKeyUtils;
+import com.example.summarizer.utils.CacheUtils;
 import com.example.summarizer.utils.ChunkUtils;
 import com.example.summarizer.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class SummarizationOrchestrator implements SummarizeUseCase {
 
@@ -255,7 +254,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
 
     private SummaryResult findCachedResult(FeedArticle article, Map<String, SummaryResult> cache) {
         if (article == null) return null;
-        String key = CacheKeyUtils.cacheKey(article.getUrl());
+        String key = CacheUtils.cacheKey(article.getUrl());
         return key == null ? null : cache.get(key);
     }
 

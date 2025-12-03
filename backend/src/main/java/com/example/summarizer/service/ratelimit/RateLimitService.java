@@ -1,4 +1,5 @@
 package com.example.summarizer.service.ratelimit;
 
-public class RateLimitService {
+public interface RateLimitService {
+    boolean allow(String key, int limit, int windowSeconds);
 }

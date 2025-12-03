@@ -3,13 +3,16 @@ package com.example.summarizer.service;
 import com.example.summarizer.clients.FirecrawlClient;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.ports.ContentEnricherPort;
+import com.example.summarizer.utils.ChunkUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ContentCrawlerService implements ContentEnricherPort {
@@ -19,6 +22,12 @@ public class ContentCrawlerService implements ContentEnricherPort {
     private final FirecrawlClient firecrawlClient;
     private final int minContentLength;
     private final boolean alwaysRefresh;
+
+    // ⚡ Virtual threads → scalable, nhẹ hơn fixed-thread
+    private final ExecutorService pool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
+
+    // Mỗi batch chỉ 4 bài để tránh 429
+    private static final int BATCH_SIZE = 4;
 
     public ContentCrawlerService(
             FirecrawlClient firecrawlClient,
@@ -30,31 +39,71 @@ public class ContentCrawlerService implements ContentEnricherPort {
         this.alwaysRefresh = alwaysRefresh;
     }
 
-    /**
-     * Populates missing article content using Firecrawl. When {@code forceRefresh} is true we will crawl
-     * even if some content already exists (useful right after pulling from RSS where we only have snippets).
-     */
+    @Override
     public void enrich(List<FeedArticle> articles, boolean forceRefresh) {
-        if (articles == null || articles.isEmpty()) return;
-        if (firecrawlClient == null || !firecrawlClient.isEnabled()) return;
 
-        for (FeedArticle article : articles) {
-            if (article == null) continue;
-            if (!shouldRefresh(article, forceRefresh)) continue;
-            String url = article.getUrl();
-            if (url == null || url.isBlank() || url.equals("#")) continue;
-            Optional<String> markdown = firecrawlClient.fetchMarkdown(url);
-            if (markdown.isPresent()) {
-                article.setContent(markdown.get());
-                logger.debug("Enriched article '{}' with Firecrawl content", article.getTitle());
+        if (articles == null || articles.isEmpty()) return;
+        if (!firecrawlClient.isEnabled()) return;
+
+        // 1) Lọc ra only những bài cần enrich
+        List<FeedArticle> targets = articles.stream()
+                .filter(Objects::nonNull)
+                .filter(a -> shouldRefresh(a, forceRefresh))
+                .filter(a -> a.getUrl() != null && !a.getUrl().isBlank())
+                .collect(Collectors.toList());
+
+        if (targets.isEmpty()) return;
+
+        logger.debug("Enrich start → {} articles (batch size = {})",
+                targets.size(), BATCH_SIZE);
+
+        // 2) Chia batch
+        List<List<FeedArticle>> batches = ChunkUtils.chunked(targets, BATCH_SIZE);
+
+        for (List<FeedArticle> batch : batches) {
+
+            List<Callable<Void>> tasks = new ArrayList<>();
+
+            for (FeedArticle article : batch) {
+                tasks.add(() -> {
+                    try {
+                        Optional<String> md = firecrawlClient.fetchMarkdown(article.getUrl());
+
+                        if (md.isPresent() && !md.get().isBlank()) {
+                            article.setContent(md.get());
+                            logger.debug("[Firecrawl] Enriched → {}", article.getTitle());
+                        } else {
+                            logger.debug("[Firecrawl] Empty/ignored → {}", article.getTitle());
+                        }
+
+                    } catch (Exception ex) {
+                        logger.warn("Firecrawl enrich failed for '{}': {}", article.getTitle(), ex.getMessage());
+                    }
+                    return null;
+                });
+            }
+
+            try {
+                // 3) Thực thi từng batch → giảm 429 cực mạnh
+                pool.invokeAll(tasks);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.error("Enrich batch interrupted", e);
+                break;
             }
         }
+
+        logger.debug("Enrich completed.");
     }
 
+    /**
+     * Quyết định xem bài có cần crawl lại không
+     */
     private boolean shouldRefresh(FeedArticle article, boolean forceRefresh) {
         if (forceRefresh || alwaysRefresh) return true;
+
         String content = article.getContent();
-        if (content == null || content.isBlank()) return true;
-        return content.length() < minContentLength;
+        return content == null || content.isBlank() || content.length() < minContentLength;
     }
 }

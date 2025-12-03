@@ -4,6 +4,7 @@ import com.example.summarizer.clients.GeminiClient;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
 import com.example.summarizer.service.SummarizationOrchestrator;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +18,7 @@ public class GeminiConfig {
     @Value("${gemini.model:gemini-1}")
     private String model;
 
-    @Value("${gemini.endpoint:https://api.example.com/v1/generate}")
+    @Value("${gemini.endpoint:}")
     private String endpoint;
 
     @Value("${gemini.provider:raw}")
@@ -26,32 +27,75 @@ public class GeminiConfig {
     @Value("${gemini.maxRetries:2}")
     private int maxRetries;
 
+    @Value("${gemini.useApiKeyAsQuery:true}")
+    private boolean useApiKeyAsQuery;
+
     @Value("${summarizer.batchSize:8}")
     private int batchSize;
 
     @Value("${summarizer.promptTemplate:{items_json}}")
     private String promptTemplate;
 
+
+    /**
+     * Build GeminiClient bean
+     */
     @Bean
     public SummarizerPort geminiClient() {
-        // If provider is google and the endpoint is still the placeholder, set the Google Generative API endpoint
-        String effectiveEndpoint = endpoint;
-        if ("google".equalsIgnoreCase(provider)) {
-            if (endpoint == null || endpoint.contains("example.com") || endpoint.trim().isEmpty()) {
-                effectiveEndpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent";
-            } else if (endpoint.contains("{model}")) {
-                effectiveEndpoint = endpoint.replace("{model}", model);
-            }
-        }
 
-        return new GeminiClient(apiKey, model, maxRetries, effectiveEndpoint, provider, useApiKeyAsQuery);
+        String effectiveEndpoint = resolveEndpoint();
+
+        return new GeminiClient(
+                apiKey,
+                model,
+                maxRetries,
+                effectiveEndpoint,
+                provider,
+                useApiKeyAsQuery
+        );
     }
 
-    @Value("${gemini.useApiKeyAsQuery:true}")
-    private boolean useApiKeyAsQuery;
 
+    /**
+     * Resolve đúng endpoint theo provider
+     */
+    private String resolveEndpoint() {
+
+        // RAW Provider → dùng endpoint người dùng config
+        if (!"google".equalsIgnoreCase(provider)) {
+            return endpoint == null || endpoint.isBlank()
+                    ? "https://api.example.com/v1/generate"
+                    : endpoint;
+        }
+
+        // GOOGLE Provider
+        if (endpoint == null || endpoint.isBlank() || endpoint.contains("example.com")) {
+            // Default Google Gemini endpoint
+            return "https://generativelanguage.googleapis.com/v1beta/models/"
+                    + model + ":generateContent";
+        }
+
+        // Người dùng tự custom endpoint
+        if (endpoint.contains("{model}")) {
+            return endpoint.replace("{model}", model);
+        }
+
+        return endpoint;
+    }
+
+
+    /**
+     * Build SummarizationOrchestrator
+     */
     @Bean
     public SummarizeUseCase summarizationOrchestrator(SummarizerPort client) {
-        return new SummarizationOrchestrator(client, promptTemplate, batchSize);
+        String safeTemplate = promptTemplate;
+
+        // đảm bảo template không bị rỗng
+        if (safeTemplate == null || safeTemplate.isBlank()) {
+            safeTemplate = "{items_json}";
+        }
+
+        return new SummarizationOrchestrator(client, safeTemplate, batchSize);
     }
 }

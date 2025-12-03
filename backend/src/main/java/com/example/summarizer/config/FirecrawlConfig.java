@@ -1,6 +1,8 @@
 package com.example.summarizer.config;
 
 import com.example.summarizer.clients.FirecrawlClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +14,8 @@ import java.util.stream.Collectors;
 
 @Configuration
 public class FirecrawlConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(FirecrawlConfig.class);
 
     @Value("${firecrawl.endpoint:https://api.firecrawl.dev/v2/scrape}")
     private String endpoint;
@@ -39,8 +43,36 @@ public class FirecrawlConfig {
 
     @Bean
     public FirecrawlClient firecrawlClient() {
+
+        // ❗ Nếu không có API key → tắt luôn Firecrawl để tránh lỗi 500 & spam request
+        if (apiKey == null || apiKey.isBlank()) {
+            logger.warn("⚠️ Firecrawl disabled: missing API key");
+            enabled = false;
+        }
+
         Duration timeout = Duration.ofSeconds(Math.max(5, timeoutSeconds));
         Long maxAgeValue = maxAge > 0 ? maxAge : null;
+
+        // Log cấu hình để debug dễ hơn
+        logger.info("""
+                🔧 Firecrawl Client Configured:
+                  - endpoint       = {}
+                  - enabled        = {}
+                  - onlyMain       = {}
+                  - maxAge         = {}
+                  - formats        = {}
+                  - parsers        = {}
+                  - timeout        = {}s
+                """,
+                endpoint,
+                enabled,
+                onlyMainContent,
+                maxAgeValue,
+                parseList(formats),
+                parseList(parsers),
+                timeoutSeconds
+        );
+
         return new FirecrawlClient(
                 endpoint,
                 apiKey,

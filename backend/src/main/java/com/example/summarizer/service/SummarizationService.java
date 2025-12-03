@@ -9,9 +9,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SummarizationService implements LoadSummariesQuery {
 
@@ -25,55 +23,81 @@ public class SummarizationService implements LoadSummariesQuery {
 
     @Override
     public Map<String, Object> getSummaries() throws IOException {
+
         SummaryPayload payload = summaryStore.loadExisting();
         if (payload == null) {
-            throw new IOException("No summaries cached yet. Please run the pipeline first.");
+            throw new IOException("No summaries found. Run summarization pipeline first.");
         }
 
         Map<String, Object> extras = new HashMap<>(payload.getExtra());
-        String lastUpdated = toStringValue(extras.get("last_updated"));
-        boolean isStale = checkIfStale(lastUpdated, 60);
-        String freshness = calculateAge(lastUpdated);
+
+        String lastUpdated = stringValue(extras.get("last_updated"));
+        OffsetDateTime parsedTime = parseTimeSafe(lastUpdated);
+
+        boolean isStale = parsedTime == null || isOlderThan(parsedTime, Duration.ofMinutes(60));
+        String freshness = parsedTime == null ? "Unknown" : formatAge(parsedTime);
 
         List<?> items = payload.getSummaries();
         int count = items == null ? 0 : items.size();
 
-        Map<String, Object> response = new HashMap<>(extras);
-        response.put("items", payload.getSummaries());
+        // ensure correlation id exists
+        extras.putIfAbsent("correlation_id", UUID.randomUUID().toString());
+
+        // API response shape
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.putAll(extras);
+        response.put("items", items);
+        response.put("count", count);
         response.put("last_updated", lastUpdated);
         response.put("is_stale", isStale);
         response.put("freshness", freshness);
-        response.put("count", count);
+
         return response;
     }
 
-    private boolean checkIfStale(String lastUpdatedStr, int thresholdMinutes) {
-        if (lastUpdatedStr == null || lastUpdatedStr.isBlank()) return true;
+    private static String stringValue(Object v) {
+        return v == null ? null : v.toString();
+    }
+
+    private OffsetDateTime parseTimeSafe(String val) {
+        if (val == null || val.isBlank()) return null;
+
         try {
-            OffsetDateTime last = OffsetDateTime.parse(lastUpdatedStr.replace("Z", "+00:00"));
-            Duration age = Duration.between(last, clock.nowUtc());
-            return age.toMinutes() > thresholdMinutes;
-        } catch (DateTimeParseException | NullPointerException ex) {
-            return true;
+            // auto handle Z, +00:00, offset variations
+            return OffsetDateTime.parse(val);
+        } catch (DateTimeParseException e) {
+            try {
+                // fallback: replace Z → UTC
+                return OffsetDateTime.parse(val.replace("Z", "+00:00"));
+            } catch (Exception ex) {
+                return null;
+            }
         }
     }
 
-    private String calculateAge(String lastUpdatedStr) {
-        if (lastUpdatedStr == null || lastUpdatedStr.isBlank()) return "Unknown";
-        try {
-            OffsetDateTime last = OffsetDateTime.parse(lastUpdatedStr.replace("Z", "+00:00"));
-            Duration age = Duration.between(last, clock.nowUtc());
-            long seconds = age.getSeconds();
-            if (seconds < 60) return "Just now";
-            if (seconds < 3600) return (seconds / 60) + " minutes ago";
-            if (seconds < 86400) return (seconds / 3600) + " hours ago";
-            return (seconds / 86400) + " days ago";
-        } catch (DateTimeParseException | NullPointerException ex) {
-            return "Unknown";
-        }
+    private boolean isOlderThan(OffsetDateTime timestamp, Duration threshold) {
+        OffsetDateTime now = clock.nowUtc();
+        Duration age = Duration.between(timestamp, now);
+        return age.compareTo(threshold) > 0;
     }
 
-    private static String toStringValue(Object value) {
-        return value == null ? null : value.toString();
+    private String formatAge(OffsetDateTime timestamp) {
+        Duration age = Duration.between(timestamp, clock.nowUtc());
+        long seconds = age.getSeconds();
+
+        if (seconds < 60) return "Just now";
+
+        long minutes = seconds / 60;
+        if (minutes < 60) return minutes + " minutes ago";
+
+        long hours = minutes / 60;
+        if (hours < 24) {
+            long remainMin = minutes % 60;
+            return remainMin == 0 ? (hours + " hours ago")
+                    : (hours + "h " + remainMin + "m ago");
+        }
+
+        long days = hours / 24;
+        return days + " days ago";
     }
 }

@@ -1,5 +1,6 @@
 package com.example.summarizer.pipelines;
 
+import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.domain.SummaryPayload;
 import com.example.summarizer.domain.SummaryResult;
 import com.example.summarizer.ports.ClockPort;
@@ -7,10 +8,12 @@ import com.example.summarizer.ports.FeedPort;
 import com.example.summarizer.ports.RefreshNewsUseCase;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummaryStorePort;
+import com.example.summarizer.utils.CacheKeyUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +35,8 @@ public class NewsPipeline implements RefreshNewsUseCase {
     }
 
     @Override
-    public java.nio.file.Path run(int topN) throws Exception {
-        List<com.example.summarizer.domain.FeedArticle> articles = feedPort.fetchLatest(topN);
+    public Path run(int topN) throws Exception {
+        List<FeedArticle> articles = feedPort.fetchLatest(topN);
         Map<String, SummaryResult> cache = loadSummaryCache();
         List<SummaryResult> summaries = summarizer.summarize(articles, cache);
 
@@ -52,7 +55,7 @@ public class NewsPipeline implements RefreshNewsUseCase {
             }
             Map<String, SummaryResult> cache = new HashMap<>();
             for (SummaryResult summary : payload.getSummaries()) {
-                String key = cacheKey(summary.getUrl(), summary.getTitle());
+                String key = CacheKeyUtils.cacheKey(summary.getUrl());
                 if (key != null && !cache.containsKey(key)) {
                     cache.put(key, summary);
                 }
@@ -63,11 +66,5 @@ public class NewsPipeline implements RefreshNewsUseCase {
             logger.debug("Summary cache unavailable: {}", ex.getMessage());
             return Map.of();
         }
-    }
-
-    private String cacheKey(String url, String title) {
-        if (url != null && !url.isBlank()) return url.trim();
-        if (title != null && !title.isBlank()) return title.trim();
-        return null;
     }
 }

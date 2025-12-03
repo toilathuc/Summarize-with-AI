@@ -5,12 +5,15 @@ import com.example.summarizer.feeds.TechmemeFeedClient;
 import com.example.summarizer.ports.ArticleStorePort;
 import com.example.summarizer.ports.ContentEnricherPort;
 import com.example.summarizer.ports.FeedPort;
+import com.example.summarizer.utils.ContentHashUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class FeedService implements FeedPort {
@@ -39,6 +42,7 @@ public class FeedService implements FeedPort {
         List<FeedArticle> fresh = client.fetchArticles(limit);
         if (!fresh.isEmpty()) {
             contentEnricher.enrich(fresh, true);
+            markContentHashFromCache(fresh, cached);
             articleRepository.replaceAll(fresh, DEFAULT_SOURCE);
             logger.info("Cached {} Techmeme articles fetched from RSS", fresh.size());
             if (limit != null && fresh.size() > limit) {
@@ -56,4 +60,20 @@ public class FeedService implements FeedPort {
         logger.warn("No articles returned from RSS or cache");
         return fresh;
     }
+
+    private void markContentHashFromCache(List<FeedArticle> fresh, List<FeedArticle> cached) {
+        if (cached == null || cached.isEmpty()) return;
+
+        Map<String, String> cachedContentByUrl = cached.stream()
+                .collect(Collectors.toMap(FeedArticle::getUrl, FeedArticle::getContent, (a, b) -> a));
+
+        fresh.forEach(f -> {
+            String oldContent = cachedContentByUrl.get(f.getUrl());
+            if (oldContent != null &&
+                    ContentHashUtils.isContentHashMatch(oldContent, f.getContent())) {
+                f.setIsSummarized(Boolean.TRUE);
+            }
+        });
+    }
+
 }

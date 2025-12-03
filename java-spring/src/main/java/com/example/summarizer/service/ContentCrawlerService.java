@@ -41,7 +41,9 @@ public class ContentCrawlerService implements ContentEnricherPort {
         for (FeedArticle article : articles) {
             if (article == null) continue;
             if (!shouldRefresh(article, forceRefresh)) continue;
-            Optional<String> markdown = firecrawlClient.fetchMarkdown(article.getUrl());
+            String url = article.getUrl();
+            if (url == null || url.isBlank() || url.equals("#")) continue;
+            Optional<String> markdown = firecrawlClient.fetchMarkdown(url);
             if (markdown.isPresent()) {
                 article.setContent(markdown.get());
                 logger.debug("Enriched article '{}' with Firecrawl content", article.getTitle());

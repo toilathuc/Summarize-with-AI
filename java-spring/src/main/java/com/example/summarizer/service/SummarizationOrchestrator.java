@@ -5,6 +5,7 @@ import com.example.summarizer.domain.SummaryRequest;
 import com.example.summarizer.domain.SummaryResult;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
+import com.example.summarizer.utils.CacheKeyUtils;
 import com.example.summarizer.utils.ChunkUtils;
 import com.example.summarizer.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,7 +51,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         for (int i = 0; i < articles.size(); i++) {
             FeedArticle article = articles.get(i);
             SummaryResult cached = findCachedResult(article, safeCache);
-            if (cached != null) {
+            if (cached != null && article.getIsSummarized()) {
                 orderedResults.set(i, cached);
                 reused++;
             } else {
@@ -126,15 +127,9 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
 
     private SummaryResult findCachedResult(FeedArticle article, Map<String, SummaryResult> cache) {
         if (cache.isEmpty() || article == null) return null;
-        String key = cacheKey(article.getUrl(), article.getTitle());
+        String key = CacheKeyUtils.cacheKey(article.getUrl());
         if (key == null) return null;
         return cache.get(key);
-    }
-
-    private String cacheKey(String url, String title) {
-        if (url != null && !url.isBlank()) return url.trim();
-        if (title != null && !title.isBlank()) return title.trim();
-        return null;
     }
 
     private static class PendingRequest {

@@ -3,7 +3,7 @@ export function updateStats(element, totalItems) {
     return;
   }
 
-  const totalText = totalItems === 1 ? "1 Article" : `${totalItems} Articles`;
+  const totalText = totalItems === 1 ? "1 bài viết" : `${totalItems} bài viết`;
   element.textContent = totalText;
 }
 
@@ -33,5 +33,5 @@ export function updateLastUpdated(element, sourceTimestamp = null) {
     minute: "2-digit",
   });
 
-  element.textContent = `Last updated: ${timeString}`;
+  element.textContent = `Cập nhật lần cuối: ${timeString}`;
 }

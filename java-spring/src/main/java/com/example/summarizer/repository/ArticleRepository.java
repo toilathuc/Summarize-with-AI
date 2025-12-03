@@ -54,6 +54,7 @@ public class ArticleRepository implements ArticleStorePort {
                         url TEXT,
                         content TEXT,
                         source TEXT,
+                        is_summarized INTEGER DEFAULT 0,
                         created_at TEXT NOT NULL
                     )
                     """);
@@ -69,7 +70,7 @@ public class ArticleRepository implements ArticleStorePort {
     @Override
     public List<FeedArticle> fetchLatest(Integer limit) throws IOException {
         List<FeedArticle> articles = new ArrayList<>();
-        StringBuilder sql = new StringBuilder("SELECT title, url, content FROM articles ORDER BY created_at DESC, id DESC");
+        StringBuilder sql = new StringBuilder("SELECT title, url, content, is_summarized FROM articles ORDER BY created_at DESC, id DESC");
         if (limit != null && limit > 0) {
             sql.append(" LIMIT ?");
         }
@@ -84,7 +85,8 @@ public class ArticleRepository implements ArticleStorePort {
                     FeedArticle article = new FeedArticle(
                             rs.getString("title"),
                             rs.getString("url"),
-                            rs.getString("content")
+                            rs.getString("content"),
+                            rs.getInt("is_summarized") != 0 ? Boolean.TRUE : Boolean.FALSE
                     );
                     articles.add(article);
                 }
@@ -136,14 +138,15 @@ public class ArticleRepository implements ArticleStorePort {
             return;
         }
 
-        String sql = "INSERT INTO articles (title, url, content, source, created_at) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO articles (title, url, content, source, is_summarized, created_at) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             for (FeedArticle article : articles) {
                 ps.setString(1, article.getTitle());
                 ps.setString(2, article.getUrl());
                 ps.setString(3, article.getContent());
                 ps.setString(4, source);
-                ps.setString(5, createdAt);
+                ps.setInt(5, article.getIsSummarized() != null && article.getIsSummarized() ? 1 : 0);
+                ps.setString(6, createdAt);
                 ps.addBatch();
             }
             ps.executeBatch();

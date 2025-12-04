@@ -4,7 +4,7 @@ public class FeedArticle {
     private String title;
     private String url;
     private String description;
-    private String content;
+    private String content = "";
     private Boolean isSummarized = Boolean.FALSE;
 
     public FeedArticle() {}

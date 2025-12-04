@@ -68,7 +68,7 @@ public class RefreshCoordinator {
 
         boolean locked = lockService.tryLock(
                 REFRESH_LOCK,
-                Duration.ofMinutes(3)
+                Duration.ofSeconds(30)
         );
 
         if (!locked) {
@@ -89,7 +89,7 @@ public class RefreshCoordinator {
 
         boolean locked = lockService.tryLock(
                 REFRESH_LOCK,
-                Duration.ofMinutes(3)
+                Duration.ofSeconds(30)
         );
 
         if (!locked) {

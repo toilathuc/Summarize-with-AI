@@ -1,11 +1,15 @@
 package com.example.summarizer.service.lock;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.connection.RedisStringCommands;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class RedisLockService implements LockService {
@@ -15,8 +19,7 @@ public class RedisLockService implements LockService {
 
     public RedisLockService(
             StringRedisTemplate redis,
-            @Value("${redis.key-prefix:summarizer}") String prefix
-    ) {
+            @Value("${redis.key-prefix:summarizer}") String prefix) {
         this.redis = redis;
         this.prefix = prefix;
     }
@@ -25,36 +28,44 @@ public class RedisLockService implements LockService {
         return prefix + ":lock:" + raw;
     }
 
+    // mỗi lock có một token để tránh unlock nhầm
+    private static final ThreadLocal<String> tokenHolder = new ThreadLocal<>();
+
     @Override
     public boolean tryLock(String rawKey, Duration ttl) {
         String redisKey = key(rawKey);
+        String token = UUID.randomUUID().toString();
 
-        // 1) SETNX – tạo lock
-        Boolean ok = redis.opsForValue().setIfAbsent(
-                redisKey,
-                String.valueOf(Instant.now().toEpochMilli())
+        Boolean success = redis.execute((RedisCallback<Boolean>) con ->
+                con.stringCommands().set(
+                        redisKey.getBytes(StandardCharsets.UTF_8),
+                        token.getBytes(StandardCharsets.UTF_8),
+                        Expiration.from(ttl),
+                        RedisStringCommands.SetOption.ifAbsent()
+                )
         );
 
-        // Nếu không lock được → có lock cũ → return false
-        if (!Boolean.TRUE.equals(ok)) {
-            return false;
+        if (Boolean.TRUE.equals(success)) {
+            tokenHolder.set(token);
+            return true;
         }
 
-        // 2) ĐẢM BẢO TTL luôn tồn tại
-        Boolean expireOk = redis.expire(redisKey, ttl);
-
-        if (!Boolean.TRUE.equals(expireOk)) {
-            // Nếu expire fail → xóa lock để tránh treo
-            redis.delete(redisKey);
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
     @Override
     public void unlock(String rawKey) {
-        redis.delete(key(rawKey));
+        String redisKey = key(rawKey);
+        String token = tokenHolder.get();
+
+        String current = redis.opsForValue().get(redisKey);
+
+        // chỉ xóa lock nếu đúng process sở hữu
+        if (token != null && token.equals(current)) {
+            redis.delete(redisKey);
+        }
+
+        tokenHolder.remove();
     }
 
     @Override

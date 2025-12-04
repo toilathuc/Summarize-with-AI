@@ -14,6 +14,15 @@ import java.net.http.*;
 import java.time.Duration;
 import java.util.UUID;
 
+/**
+ * GeminiClient — PRODUCTION version
+ * ----------------------------------
+ * ✓ Retry thông minh với backoff
+ * ✓ Timeout cứng
+ * ✓ User-Agent tránh chặn bot
+ * ✓ Google format parsing resilient
+ * ✓ An toàn cho xử lý song song (virtual threads)
+ */
 public class GeminiClient implements SummarizerPort {
 
     private static final Logger logger = LoggerFactory.getLogger(GeminiClient.class);
@@ -36,7 +45,7 @@ public class GeminiClient implements SummarizerPort {
         this.apiKey = apiKey;
         this.model = model;
         this.maxRetries = Math.max(1, maxRetries);
-        this.endpoint = URI.create(endpointUrl.trim());
+        this.endpoint = URI.create(endpointUrl);
         this.provider = provider == null ? "raw" : provider;
         this.useApiKeyAsQuery = useApiKeyAsQuery;
 
@@ -73,10 +82,11 @@ public class GeminiClient implements SummarizerPort {
 
         HttpRequest request = rb.POST(HttpRequest.BodyPublishers.ofString(payload)).build();
 
-        String cid = UUID.randomUUID().toString().substring(0, 8);
+        // correlation id theo request → debug dễ hơn
+        String correlationId = UUID.randomUUID().toString().substring(0, 8);
 
-        logger.debug("Gemini({}) → Request prepared for model={}, provider={}, endpoint={}",
-                cid, model, provider, endpoint);
+        logger.debug("Gemini({}) → Prepared request: provider={}, model={}, endpoint={}",
+                correlationId, provider, model, endpoint);
 
         long backoff = 500;
         int attempt = 0;
@@ -85,7 +95,7 @@ public class GeminiClient implements SummarizerPort {
             attempt++;
 
             try {
-                logger.debug("Gemini({}) attempt {}", cid, attempt);
+                logger.debug("Gemini({}) attempt {}", correlationId, attempt);
 
                 HttpResponse<String> resp =
                         http.send(request, HttpResponse.BodyHandlers.ofString());
@@ -93,67 +103,44 @@ public class GeminiClient implements SummarizerPort {
                 int code = resp.statusCode();
                 String body = resp.body();
 
-                // 🔥 FULL RAW RESPONSE LOG
-                logger.debug("Gemini({}) RAW HTTP {} BODY:\n{}",
-                        cid, code, body);
-
                 if (isSuccess(code)) {
-
-                    logger.debug("Gemini({}) success ({} chars)", cid,
+                    logger.debug("Gemini({}) success ({} chars)", correlationId,
                             body == null ? 0 : body.length());
 
                     if ("google".equalsIgnoreCase(provider)) {
                         try {
                             return extractGoogleText(body);
                         } catch (Exception ex) {
-                            logger.error("Gemini({}) ❌ FAILED to parse Google JSON.\nRAW BODY:\n{}\nERROR={}",
-                                    cid, body, ex.getMessage());
-                            return body; // fallback raw
+                            logger.warn("Gemini({}) parse-google failed → using raw", correlationId);
                         }
                     }
-
                     return body;
                 }
 
-                // 🔥 NON-RETRYABLE ERROR — PRINT FULL BODY
                 if (!isRetryable(code)) {
-                    logger.error("""
-                            
-                            ================= GEMINI NON-RETRYABLE ERROR ================
-                            CID: {}
-                            HTTP CODE: {}
-                            RAW RESPONSE:
-                            {}
-                            =============================================================
-                            """, cid, code, body);
-
-                    throw new IOException("Gemini HTTP " + code + " → " + body);
+                    logger.error("Gemini({}) non-retryable {}: {}", correlationId, code, body);
+                    throw new IOException("Gemini error " + code + ": " + body);
                 }
 
-                // Retryable
-                logger.warn("Gemini({}) retryable {} → retry {}/{}", cid, code, attempt, maxRetries);
+                logger.warn("Gemini({}) retryable {} → retry {} of {}", correlationId, code, attempt, maxRetries);
 
             } catch (IOException | InterruptedException ex) {
-
-                logger.error("""
-                        
-                        ================= GEMINI EXCEPTION ================
-                        CID: {}
-                        Attempt: {}/{}
-                        ERROR: {}
-                        ==================================================
-                        """, cid, attempt, maxRetries, ex.getMessage());
-
                 if (attempt > maxRetries) {
+                    logger.error("Gemini({}) FAILED after {} retries: {}", correlationId, maxRetries, ex.getMessage());
                     throw ex;
                 }
+
+                logger.warn("Gemini({}) call exception → retry {}/{}: {}",
+                        correlationId, attempt, maxRetries, ex.getMessage());
             }
 
             Thread.sleep(backoff);
-            backoff = Math.min(backoff * 2, 5000);
+            backoff = Math.min(backoff * 2, 5000); // max 5s
         }
     }
 
+
+    /* Helpers ----------------------------------------------------------- */
 
     private boolean isSuccess(int code) {
         return code >= 200 && code < 300;
@@ -164,15 +151,17 @@ public class GeminiClient implements SummarizerPort {
     }
 
 
+    /* Google Payload ----------------------------------------------------- */
+
     private ObjectNode buildGooglePayload(String prompt) {
         ObjectNode root = mapper.createObjectNode();
 
         ArrayNode contents = root.putArray("contents");
-
         ObjectNode msg = mapper.createObjectNode();
-        msg.put("role", "user");
 
+        msg.put("role", "user");
         ArrayNode parts = msg.putArray("parts");
+
         ObjectNode text = mapper.createObjectNode();
         text.put("text", prompt);
 
@@ -192,18 +181,16 @@ public class GeminiClient implements SummarizerPort {
     }
 
 
+    /* Google JSON extract ------------------------------------------------ */
+
     private String extractGoogleText(String body) throws IOException {
-
         JsonNode root = mapper.readTree(body);
+
         JsonNode candidates = root.path("candidates");
+        if (!candidates.isArray()) return body;
 
-        if (!candidates.isArray()) {
-            logger.warn("Gemini → 'candidates' missing, returning raw body");
-            return body;
-        }
-
-        for (JsonNode c : candidates) {
-            JsonNode content = c.path("content");
+        for (JsonNode candidate : candidates) {
+            JsonNode content = candidate.path("content");
 
             if (content.has("parts")) {
                 StringBuilder out = new StringBuilder();
@@ -220,7 +207,6 @@ public class GeminiClient implements SummarizerPort {
             }
         }
 
-        logger.warn("Gemini → No usable text extracted, returning raw body");
         return body;
     }
 

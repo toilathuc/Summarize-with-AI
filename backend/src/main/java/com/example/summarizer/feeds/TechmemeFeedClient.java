@@ -230,9 +230,9 @@ public class TechmemeFeedClient {
             if (url.isBlank()) url = n.path("techmeme_url").asText("");
             if (url.isBlank()) continue;
 
-            String content = n.path("summary_text").asText("");
+            String description = n.path("summary_text").asText("");
 
-            out.add(new FeedArticle(title, url, content));
+            out.add(new FeedArticle(title, url, description));
             count++;
         }
 

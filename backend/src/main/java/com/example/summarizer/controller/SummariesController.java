@@ -36,7 +36,7 @@ public class SummariesController {
         return getSummaries();
     }
 
-    @GetMapping("/healthz")
+    @GetMapping("/health")
     public Map<String, String> health() {
         return Map.of("status", "ok");
     }

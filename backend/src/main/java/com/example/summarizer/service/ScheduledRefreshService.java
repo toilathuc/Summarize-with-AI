@@ -11,14 +11,9 @@ public class ScheduledRefreshService {
     private static final Logger log = LoggerFactory.getLogger(ScheduledRefreshService.class);
 
     private final RefreshCoordinator coordinator;
-    private final long interval;
 
-    public ScheduledRefreshService(
-            RefreshCoordinator coordinator,
-            @org.springframework.beans.factory.annotation.Value("${refresh.interval.ms:-1}") long interval
-    ) {
+    public ScheduledRefreshService(RefreshCoordinator coordinator) {
         this.coordinator = coordinator;
-        this.interval = interval;
     }
 
     @Scheduled(fixedDelayString = "${refresh.interval.ms}")

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -67,7 +68,7 @@ public class RefreshCoordinator {
 
         boolean locked = lockService.tryLock(
                 REFRESH_LOCK,
-                Duration.ofMinutes(10)
+                Duration.ofMinutes(3)
         );
 
         if (!locked) {
@@ -88,7 +89,7 @@ public class RefreshCoordinator {
 
         boolean locked = lockService.tryLock(
                 REFRESH_LOCK,
-                Duration.ofMinutes(10)
+                Duration.ofMinutes(3)
         );
 
         if (!locked) {
@@ -103,7 +104,7 @@ public class RefreshCoordinator {
 
     // ========================= ASYNC PIPELINE =====================
     @Async
-    public void runAsyncRefresh(int top, String correlationId) {
+    public Path runAsyncRefresh(int top, String correlationId) {
 
         try {
             log.info("🔥 REFRESH STARTED — top={}, cid={}", top, correlationId);
@@ -120,7 +121,7 @@ public class RefreshCoordinator {
             log.info("🧠 Summarized {} articles", summaries.size());
 
             // STORE
-            summaryStore.save(
+            Path out = summaryStore.save(
                     summaries,
                     Map.of(
                             "last_updated", OffsetDateTime.now().toString(),
@@ -133,6 +134,7 @@ public class RefreshCoordinator {
             lastRunAt = Instant.now();
             lastReason = "success";
             log.info("✅ REFRESH COMPLETED — cid={}, at={}", correlationId, lastRunAt);
+            return out;
 
         } catch (Exception ex) {
             log.error("❌ REFRESH FAILED — cid=" + correlationId, ex);
@@ -142,6 +144,7 @@ public class RefreshCoordinator {
             // ALWAYS RELEASE LOCK
             lockService.unlock(REFRESH_LOCK);
         }
+        return null;
     }
 
     // ====== RECORD ======

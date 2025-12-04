@@ -71,11 +71,12 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         // 1) REUSE CACHE
         for (int i = 0; i < articles.size(); i++) {
             FeedArticle art = articles.get(i);
-            SummaryResult c = findCachedResult(art, safeCache);
-
-            if (c != null && Boolean.TRUE.equals(art.getIsSummarized())) {
-                ordered.set(i, c);
-                reused++;
+            if (art.getIsSummarized()) {
+               SummaryResult c = findCachedResult(art, safeCache);
+               if (c != null) {
+                   ordered.set(i, c);
+                   reused++;
+               }
             } else {
                 pending.add(new PendingRequest(art.toSummaryRequest(), i));
             }

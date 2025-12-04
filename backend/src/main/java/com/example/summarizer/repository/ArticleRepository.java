@@ -2,6 +2,9 @@ package com.example.summarizer.repository;
 
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.ports.ArticleStorePort;
+import com.example.summarizer.utils.WalModeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.sqlite.SQLiteDataSource;
@@ -22,6 +25,7 @@ public class ArticleRepository implements ArticleStorePort {
 
     private final Path databasePath;
     private final SQLiteDataSource dataSource;
+    private Logger logger = LoggerFactory.getLogger(ArticleRepository.class);
 
     public ArticleRepository(@Value("${storage.database-path}") String databasePathStr) {
 
@@ -41,23 +45,7 @@ public class ArticleRepository implements ArticleStorePort {
         this.dataSource.setUrl("jdbc:sqlite:" + this.databasePath.toAbsolutePath());
 
         initSchema();
-        initPragma();
-    }
-
-    /** PRAGMA tối ưu cho đọc/ghi song song */
-    private void initPragma() {
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            stmt.execute("PRAGMA journal_mode=WAL;");
-            stmt.execute("PRAGMA synchronous=NORMAL;");
-            stmt.execute("PRAGMA busy_timeout=5000;");
-            stmt.execute("PRAGMA temp_store=MEMORY;");
-            stmt.execute("PRAGMA foreign_keys=ON;");
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to set SQLite PRAGMA", e);
-        }
+        WalModeUtils.enableWalMode(dataSource, logger);
     }
 
     /** Schema + Index */
@@ -70,6 +58,7 @@ public class ArticleRepository implements ArticleStorePort {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
                     url TEXT,
+                    description TEXT,
                     content TEXT,
                     source TEXT,
                     is_summarized INTEGER DEFAULT 0,
@@ -95,10 +84,10 @@ public class ArticleRepository implements ArticleStorePort {
     /** FETCH =========================================================== */
 
     @Override
-    public List<FeedArticle> fetchLatest(Integer limit) throws IOException {
+    public List<FeedArticle> fetchLatestFromTable(Integer limit) throws IOException {
 
         String sql = """
-            SELECT title, url, content, is_summarized
+            SELECT title, url, description, content, is_summarized
             FROM articles
             ORDER BY created_at DESC, id DESC
         """;
@@ -122,6 +111,7 @@ public class ArticleRepository implements ArticleStorePort {
                     FeedArticle article = new FeedArticle(
                             rs.getString("title"),
                             url,
+                            rs.getString("description"),
                             rs.getString("content"),
                             rs.getInt("is_summarized") == 1
                     );
@@ -174,8 +164,8 @@ public class ArticleRepository implements ArticleStorePort {
         if (articles == null || articles.isEmpty()) return;
 
         String sql = """
-            INSERT INTO articles(title, url, content, source, is_summarized, created_at)
-            VALUES(?, ?, ?, ?, ?, ?)
+            INSERT INTO articles(title, url, description, content, source, is_summarized, created_at)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -184,10 +174,11 @@ public class ArticleRepository implements ArticleStorePort {
 
                 ps.setString(1, sanitize(a.getTitle()));
                 ps.setString(2, normalizeUrl(a.getUrl()));
-                ps.setString(3, sanitize(a.getContent()));
-                ps.setString(4, sanitize(source));
-                ps.setInt(5, Boolean.TRUE.equals(a.getIsSummarized()) ? 1 : 0);
-                ps.setString(6, createdAt);
+                ps.setString(3, sanitize(a.getDescription()));
+                ps.setString(4, sanitize(a.getContent()));
+                ps.setString(5, sanitize(source));
+                ps.setInt(6, Boolean.TRUE.equals(a.getIsSummarized()) ? 1 : 0);
+                ps.setString(7, createdAt);
 
                 ps.addBatch();
             }

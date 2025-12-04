@@ -4,6 +4,7 @@ import com.example.summarizer.domain.SummaryPayload;
 import com.example.summarizer.domain.SummaryResult;
 import com.example.summarizer.ports.SummaryStorePort;
 
+import com.example.summarizer.utils.WalModeUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -51,7 +52,7 @@ public class StorageService implements SummaryStorePort {
         this.dataSource.setUrl("jdbc:sqlite:" + this.databasePath.toAbsolutePath());
 
         initDatabase();
-        enableWalMode();
+        WalModeUtils.enableWalMode(dataSource, logger);
 
         logger.info("📦 StorageService initialized. SQLite at {}", this.databasePath.toAbsolutePath());
     }
@@ -86,24 +87,6 @@ public class StorageService implements SummaryStorePort {
 
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize SQLite schema", e);
-        }
-    }
-
-    /** PERFORMANCE OPTIONS ================================================== */
-
-    private void enableWalMode() {
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            stmt.execute("PRAGMA journal_mode=WAL;");
-            stmt.execute("PRAGMA busy_timeout = 5000;");
-            stmt.execute("PRAGMA synchronous=NORMAL;");
-            stmt.execute("PRAGMA temp_store=MEMORY;");
-
-            logger.info("SQLite WAL mode enabled for Summary Cache");
-
-        } catch (SQLException e) {
-            logger.warn("Failed to enable WAL mode: {}", e.getMessage());
         }
     }
 

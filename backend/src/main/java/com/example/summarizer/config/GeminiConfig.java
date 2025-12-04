@@ -15,13 +15,13 @@ public class GeminiConfig {
     @Value("${gemini.apiKey:${GEMINI_API_KEY:}}")
     private String apiKey;
 
-    @Value("${gemini.model:gemini-1}")
+    @Value("${gemini.model:gemini-1.5-flash-latest}")
     private String model;
 
     @Value("${gemini.endpoint:}")
     private String endpoint;
 
-    @Value("${gemini.provider:raw}")
+    @Value("${gemini.provider:google}")
     private String provider;
 
     @Value("${gemini.maxRetries:2}")
@@ -57,44 +57,38 @@ public class GeminiConfig {
 
 
     /**
-     * Resolve đúng endpoint theo provider
+     * Resolve Google Gemini endpoint
      */
     private String resolveEndpoint() {
 
-        // RAW Provider → dùng endpoint người dùng config
+        // Nếu không phải Google provider → dùng endpoint người dùng ghi
         if (!"google".equalsIgnoreCase(provider)) {
-            return endpoint == null || endpoint.isBlank()
+            return (endpoint == null || endpoint.isBlank())
                     ? "https://api.example.com/v1/generate"
                     : endpoint;
         }
 
-        // GOOGLE Provider
-        if (endpoint == null || endpoint.isBlank() || endpoint.contains("example.com")) {
-            // Default Google Gemini endpoint
-            return "https://generativelanguage.googleapis.com/v1beta/models/"
-                    + model + ":generateContent";
+        // Nếu user đã tự nhập endpoint → dùng luôn
+        if (endpoint != null && !endpoint.isBlank() && !endpoint.contains("example.com")) {
+            return endpoint.trim();
         }
 
-        // Người dùng tự custom endpoint
-        if (endpoint.contains("{model}")) {
-            return endpoint.replace("{model}", model);
-        }
-
-        return endpoint;
+        // Google provider → auto generate endpoint đúng chuẩn
+        return "https://generativelanguage.googleapis.com/v1/models/"
+                + model.trim()
+                + ":generateContent";
     }
 
 
     /**
-     * Build SummarizationOrchestrator
+     * Build Orchestrator
      */
     @Bean
     public SummarizeUseCase summarizationOrchestrator(SummarizerPort client) {
-        String safeTemplate = promptTemplate;
 
-        // đảm bảo template không bị rỗng
-        if (safeTemplate == null || safeTemplate.isBlank()) {
-            safeTemplate = "{items_json}";
-        }
+        String safeTemplate = (promptTemplate == null || promptTemplate.isBlank())
+                ? "{items_json}"
+                : promptTemplate;
 
         return new SummarizationOrchestrator(client, safeTemplate, batchSize);
     }

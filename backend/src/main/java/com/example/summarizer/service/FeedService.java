@@ -47,12 +47,12 @@ public class FeedService implements FeedPort {
         // Prevent hammering RSS
         if ((now - lastRssFetch) < RSS_COOLDOWN_MS) {
             logger.warn("RSS cooldown active — returning cached items");
-            return articleRepository.fetchLatest(limit);
+            return articleRepository.fetchLatestFromTable(limit);
         }
         lastRssFetch = now;
 
         // 1) Load cache
-        List<FeedArticle> cached = articleRepository.fetchLatest(limit);
+        List<FeedArticle> cached = articleRepository.fetchLatestFromTable(limit);
         Map<String, FeedArticle> cacheMap = cached.stream()
                 .collect(Collectors.toMap(FeedArticle::getUrl, a -> a, (a, b) -> a));
 
@@ -117,7 +117,7 @@ public class FeedService implements FeedPort {
                 continue;
             }
 
-            boolean same = ContentHashUtils.isContentHashMatch(old.getContent(), f.getContent());
+            boolean same = ContentHashUtils.isContentHashMatch(old.getDescription(), f.getDescription());
 
             if (!same) {
                 logger.debug("[CHANGED] {}", f.getTitle());
@@ -125,7 +125,6 @@ public class FeedService implements FeedPort {
             } else {
                 logger.debug("[REUSED] {}", f.getTitle());
                 f.setContent(old.getContent());
-                f.setIsSummarized(old.getIsSummarized());
             }
         }
 

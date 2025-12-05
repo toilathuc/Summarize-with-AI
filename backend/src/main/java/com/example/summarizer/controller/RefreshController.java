@@ -28,18 +28,6 @@ public class RefreshController {
             HttpServletRequest request
     ) {
 
-        // ====== RATE LIMIT PER-IP (3 lần / 60s) ======
-        String ip = request.getRemoteAddr();
-        if (!rateLimit.allow("refresh:" + ip, 3, 60)) {
-            return ResponseEntity.status(429).body(Map.of(
-                    "status", "rate_limited",
-                    "message", "Too many refresh attempts from your IP. Try again later.",
-                    "ip", ip,
-                    "limit", 3,
-                    "window_seconds", 60
-            ));
-        }
-
         // ====== GEN CID ======
         String cid = (incomingId != null && !incomingId.isBlank())
                 ? incomingId

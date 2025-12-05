@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class RefreshCoordinator {
@@ -104,7 +105,7 @@ public class RefreshCoordinator {
 
     // ========================= ASYNC PIPELINE =====================
     @Async
-    public Path runAsyncRefresh(int top, String correlationId) {
+    public CompletableFuture<Path> runAsyncRefresh(int top, String correlationId) {
 
         try {
             log.info("🔥 REFRESH STARTED — top={}, cid={}", top, correlationId);
@@ -134,17 +135,17 @@ public class RefreshCoordinator {
             lastRunAt = Instant.now();
             lastReason = "success";
             log.info("✅ REFRESH COMPLETED — cid={}, at={}", correlationId, lastRunAt);
-            return out;
+
+            return CompletableFuture.completedFuture(out);
 
         } catch (Exception ex) {
             log.error("❌ REFRESH FAILED — cid=" + correlationId, ex);
             lastReason = "error";
+            return CompletableFuture.failedFuture(ex);
 
         } finally {
-            // ALWAYS RELEASE LOCK
             lockService.unlock(REFRESH_LOCK);
         }
-        return null;
     }
 
     // ====== RECORD ======

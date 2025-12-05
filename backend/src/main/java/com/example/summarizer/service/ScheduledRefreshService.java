@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+
 @Service
 public class ScheduledRefreshService {
 
@@ -25,7 +27,19 @@ public class ScheduledRefreshService {
             return;
         }
 
-        // 🔥 Bắt đầu chạy job
-        coordinator.runAsyncRefresh(20, "scheduler-" + System.currentTimeMillis());
+        // 🔥 Start async job
+        String cid = "scheduler-" + System.currentTimeMillis();
+
+        CompletableFuture<Void> future =
+                coordinator.runAsyncRefresh(20, cid)
+                        .thenAccept(path ->
+                                log.info("📦 Scheduled job completed, output={}", path)
+                        )
+                        .exceptionally(ex -> {
+                            log.error("❌ Scheduled job failed", ex);
+                            return null;
+                        });
+
+        // KHÔNG được block (no get()!)
     }
 }

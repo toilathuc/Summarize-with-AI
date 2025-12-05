@@ -60,8 +60,15 @@ public class RefreshController {
             ));
         }
 
-        // ====== START NEW REFRESH ======
-        coordinator.runAsyncRefresh(top, cid);
+        // ====== START NEW REFRESH (ASYNC) ======
+        coordinator.runAsyncRefresh(top, cid)
+                .thenAccept(path ->
+                        System.out.println("📦 MANUAL refresh completed, output=" + path)
+                )
+                .exceptionally(ex -> {
+                    ex.printStackTrace();
+                    return null;
+                });
 
         return ResponseEntity.ok(Map.of(
                 "status", "started",

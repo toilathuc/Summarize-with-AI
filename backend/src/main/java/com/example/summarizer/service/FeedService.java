@@ -1,7 +1,7 @@
 package com.example.summarizer.service;
 
 import com.example.summarizer.domain.FeedArticle;
-import com.example.summarizer.feeds.TechmemeFeedClient;
+import com.example.summarizer.feeds.FeedClient;
 import com.example.summarizer.ports.ArticleStorePort;
 import com.example.summarizer.ports.ContentEnricherPort;
 import com.example.summarizer.ports.FeedPort;
@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,7 @@ public class FeedService implements FeedPort {
     private static final int MAX_ENRICH_PER_BATCH = 20;
 
     private final ArticleStorePort articleRepository;
-    private final TechmemeFeedClient client;
+    private final FeedClient client;
     private final ContentEnricherPort contentEnricher;
 
     // prevent spam-runs (Techmeme RSS rarely updates <60s)
@@ -32,7 +31,7 @@ public class FeedService implements FeedPort {
     private static final long RSS_COOLDOWN_MS = 60_000;
 
     public FeedService(ArticleStorePort articleRepository,
-                       TechmemeFeedClient client,
+                       FeedClient client,
                        ContentEnricherPort contentEnricher) {
         this.articleRepository = articleRepository;
         this.client = client;

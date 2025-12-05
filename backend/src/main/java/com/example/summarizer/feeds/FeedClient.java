@@ -25,9 +25,9 @@ import java.time.Duration;
 import java.util.*;
 
 @Component
-public class TechmemeFeedClient {
+public class FeedClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(TechmemeFeedClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(FeedClient.class);
 
     private final RestTemplate restTemplate;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -36,7 +36,7 @@ public class TechmemeFeedClient {
     private static final int MAX_RETRY = 3;
     private static final Duration RETRY_DELAY = Duration.ofMillis(600);
 
-    public TechmemeFeedClient(
+    public FeedClient(
             RestTemplateBuilder builder,
             @Value("${feeds.techmeme.url:https://www.techmeme.com/feed.xml}") String feedUrl
     ) {

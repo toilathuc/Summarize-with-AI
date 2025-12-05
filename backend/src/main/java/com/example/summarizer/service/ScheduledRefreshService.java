@@ -23,7 +23,6 @@ public class ScheduledRefreshService {
 
         // 🔥 Job đang chạy → skip
         if (!coordinator.tryStartScheduled()) {
-            log.info("⏭ Scheduled refresh skipped (busy)");
             return;
         }
 

@@ -34,4 +34,9 @@ public class RedisRateLimitService implements RateLimitService {
 
         return count != null && count <= limit;
     }
+
+    @Override
+    public long getRetryAfter(String key) {
+        return redis.getExpire(key(key));
+    }
 }

@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -18,6 +20,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final int globalLimit;
     private final int refreshLimit;
     private final int windowSeconds;
+    private Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
 
     public RateLimitFilter(
             RateLimitService rl,
@@ -42,19 +45,26 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         // Rate-limit riêng refresh
         if (path.startsWith("/api/refresh")) {
-            if (!rl.allow("ip:" + ip + ":refresh", refreshLimit, windowSeconds)) {
+            String key = "ip:" + ip + ":refresh";
+            if (!rl.allow(key, refreshLimit, windowSeconds)) {
+                logger.warn("Rate limit exceeded for refresh from IP {}", ip);
+                long retryAfter = rl.getRetryAfter(key);
                 res.setStatus(429);
                 res.setContentType("application/json");
-                res.getWriter().write("{\"status\":\"rate_limited\",\"scope\":\"refresh\"}");
+                res.getWriter().write("{\"status\":\"rate_limited\",\"scope\":\"refresh\", \"retry_after_seconds\":" + retryAfter + "}");
                 return;
             }
         }
 
+        String key = "ip:" + ip + ":all";
+
         // Rate-limit toàn app
-        if (!rl.allow("ip:" + ip + ":all", globalLimit, windowSeconds)) {
+        if (!rl.allow(key, globalLimit, windowSeconds)) {
+            logger.warn("Global rate limit exceeded from IP {}", ip);
+            long retryAfter = rl.getRetryAfter(key);
             res.setStatus(429);
             res.setContentType("application/json");
-            res.getWriter().write("{\"status\":\"rate_limited\",\"scope\":\"global\"}");
+            res.getWriter().write("{\"status\":\"rate_limited\",\"scope\":\"global\", \"retry_after_seconds\":" + retryAfter + "}");
             return;
         }
 

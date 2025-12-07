@@ -29,7 +29,7 @@ export default function () {
 export function handleSummary(data) {
   console.log('Preparing the end-of-test summary...');
   return {
-    // đường dẫn file JSON summary mà reporter sẽ đọc
-    'report/raw/report.json': JSON.stringify(data),
+    // đường dẫn file JSON mà reporter sẽ đọc
+    'report/raw/summaries-stress.json': JSON.stringify(data),
   };
 }

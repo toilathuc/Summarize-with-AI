@@ -76,6 +76,9 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
                if (c != null) {
                    ordered.set(i, c);
                    reused++;
+               } else {
+                   // Cache miss for summarized article - re-summarize it
+                   pending.add(new PendingRequest(art.toSummaryRequest(), i));
                }
             } else {
                 pending.add(new PendingRequest(art.toSummaryRequest(), i));

@@ -95,6 +95,11 @@ public class StorageService implements SummaryStorePort {
     @Override
     public Path save(List<SummaryResult> summaries, Map<String, Object> extra) throws IOException {
         if (summaries == null) summaries = List.of();
+        
+        // Filter out any null entries (defense in depth)
+        summaries = summaries.stream()
+                .filter(Objects::nonNull)
+                .toList();
 
         // Metadata
         Map<String, Object> metadata = new HashMap<>();

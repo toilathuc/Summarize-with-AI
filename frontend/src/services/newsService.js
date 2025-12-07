@@ -1,5 +1,6 @@
 const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by the backend
 const REFRESH_API = "/api/refresh";
+const STATUS_API = "/api/refresh/status";
 
 // Slow `/api/refresh` endpoints were retired. Admins should run
 // `python update_news.py` (or the Windows batch) whenever they need fresh data.
@@ -23,8 +24,7 @@ export async function refreshNewsFast() {
       lastUpdated: data.last_updated,
       isStale: data.is_stale,
       freshness: data.freshness,
-      count: data.count,
-      correlationId: data.correlation_id,
+      count: data.count
     };
   } catch (error) {
     console.error("Fast refresh error:", error);
@@ -34,21 +34,35 @@ export async function refreshNewsFast() {
 
 export async function triggerFullRefresh(top = 20) {
   const url = `${REFRESH_API}?top=${encodeURIComponent(top)}`;
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-  if (!response.ok) {
-    const text = await response.text();
+  const payload = await safeJson(res);
+
+  // Rate limit / running still return a payload we want to surface to UI
+  if (res.status === 429) {
+    return {
+      status: "rate_limited",
+      scope: payload?.scope || "refresh",
+      retry_after_seconds: payload?.retry_after_seconds,
+    };
+  }
+
+  if (res.status === 202) {
+    return { status: "running" };
+  }
+
+  if (!res.ok) {
     throw new Error(
-      `Refresh endpoint failed (${response.status}) ${text || ""}`.trim()
+      `Refresh endpoint failed (${res.status}) ${JSON.stringify(payload)}`
     );
   }
 
-  return response.json();
+  return payload;
 }
 
 /**
@@ -61,4 +75,35 @@ export async function fetchNewsData() {
     lastUpdated: apiData.lastUpdated,
     raw: apiData,
   };
+}
+
+export async function fetchRefreshStatus() {
+  try {
+    const res = await fetch(STATUS_API);
+    if (!res.ok) {
+      throw new Error(`Status HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return {
+      running: Boolean(data.running),
+      reason: data.reason || "unknown",
+      lastRunAt: data.lastRunAt
+    };
+  } catch (err) {
+    console.error("Failed to fetch refresh status", err);
+    return {
+      running: false,
+      reason: "unknown",
+      lastRunAt: null,
+      error: true,
+    };
+  }
+}
+
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }

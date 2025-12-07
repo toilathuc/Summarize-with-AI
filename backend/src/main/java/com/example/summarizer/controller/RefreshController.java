@@ -69,11 +69,11 @@ public class RefreshController {
     @GetMapping("/api/refresh/status")
     public ResponseEntity<?> getStatus() {
         var s = coordinator.getStatus();
-        return ResponseEntity.ok(Map.of(
-                "running", s.running(),
-                "lastRunAt", s.lastRunAt(),
-                "reason", s.reason(),
-                "correlationId", s.correlationId()
-        ));
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("running", s.running());
+        payload.put("lastRunAt", s.lastRunAt());
+        payload.put("reason", s.reason());
+        payload.put("correlationId", s.correlationId());
+        return ResponseEntity.ok(payload);
     }
 }

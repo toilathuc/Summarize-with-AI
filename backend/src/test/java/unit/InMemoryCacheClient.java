@@ -1,4 +1,6 @@
-package com.example.summarizer.cache;
+package unit;
+
+import com.example.summarizer.cache.KeyValueCacheClient;
 
 import java.time.Duration;
 import java.util.Collections;

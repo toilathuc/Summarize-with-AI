@@ -1,4 +1,4 @@
-package com.example.summarizer;
+package unit;
 
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.domain.SummaryResult;

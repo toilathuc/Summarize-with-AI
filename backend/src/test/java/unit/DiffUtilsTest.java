@@ -1,6 +1,8 @@
-package com.example.summarizer.utils;
+package unit;
 
 import com.example.summarizer.domain.FeedArticle;
+import com.example.summarizer.utils.ContentHashUtils;
+import com.example.summarizer.utils.DiffUtils;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

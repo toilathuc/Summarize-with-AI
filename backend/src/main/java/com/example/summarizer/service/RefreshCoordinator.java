@@ -52,7 +52,7 @@ public class RefreshCoordinator {
             FeedPort feedPort,
             NewsCacheService cacheService,
             MeterRegistry registry,
-            @Value("${refresh.lock.ttl.seconds:180}") long lockTtlSeconds
+            @Value("${refresh.lock.ttl.seconds:30}") long lockTtlSeconds
     ) {
         this.orchestrator = orchestrator;
         this.summaryStore = summaryStore;

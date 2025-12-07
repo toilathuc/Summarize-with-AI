@@ -1,6 +1,6 @@
-package com.example.summarizer.service;
+package unit;
 
-import com.example.summarizer.cache.InMemoryCacheClient;
+import com.example.summarizer.service.NewsCacheService;
 import com.example.summarizer.domain.FeedArticle;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;

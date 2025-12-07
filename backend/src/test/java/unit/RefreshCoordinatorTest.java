@@ -3,8 +3,10 @@ package unit;
 import com.example.summarizer.ports.FeedPort;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummaryStorePort;
+import com.example.summarizer.service.NewsCacheService;
 import com.example.summarizer.service.RefreshCoordinator;
 import com.example.summarizer.service.lock.LockService;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +19,9 @@ class RefreshCoordinatorTest {
     private SummaryStorePort store;
     private LockService lock;
     private FeedPort feed;
+    private NewsCacheService cacheService;
+    private MeterRegistry registry;
+
     private RefreshCoordinator coordinator;
 
     @BeforeEach
@@ -25,8 +30,12 @@ class RefreshCoordinatorTest {
         store = mock(SummaryStorePort.class);
         lock = mock(LockService.class);
         feed = mock(FeedPort.class);
+        cacheService = mock(NewsCacheService.class);
+        registry = mock(MeterRegistry.class);
 
-        coordinator = new RefreshCoordinator(orchestrator, store, lock, feed);
+        when(registry.timer(anyString())).thenReturn(mock(io.micrometer.core.instrument.Timer.class));
+
+        coordinator = new RefreshCoordinator(orchestrator, store, lock, feed, cacheService, registry, 120);
     }
 
     @Test
@@ -40,7 +49,7 @@ class RefreshCoordinatorTest {
     }
 
     @Test
-    void manual_should_start_if_unlock() {
+    void manual_should_start_if_free() {
         when(lock.tryLock(anyString(), any())).thenReturn(true);
 
         boolean allowed = coordinator.tryStartManual();

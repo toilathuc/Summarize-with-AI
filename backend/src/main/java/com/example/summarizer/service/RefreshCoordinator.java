@@ -15,6 +15,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 
+import jakarta.annotation.PostConstruct;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -63,6 +64,23 @@ public class RefreshCoordinator {
         this.refreshRunningGauge = new AtomicInteger(0);
         this.refreshTimer = registry.timer("summarizer_refresh_duration_seconds");
         registry.gauge("summarizer_refresh_running", refreshRunningGauge);
+    }
+
+    /**
+     * Clear any stale locks on startup.
+     * This ensures orphaned locks from crashed processes don't block new jobs.
+     */
+    @PostConstruct
+    public void init() {
+        if (lockService.isLocked(REFRESH_LOCK)) {
+            log.warn("🧹 Found stale refresh lock on startup - clearing it");
+            if (lockService instanceof com.example.summarizer.service.lock.RedisLockService redisLock) {
+                redisLock.forceUnlock(REFRESH_LOCK);
+            } else {
+                lockService.unlock(REFRESH_LOCK);
+            }
+        }
+        log.info("✅ RefreshCoordinator initialized");
     }
 
     // ========================= STATUS API =========================

@@ -29,7 +29,9 @@ public class RedisLockService implements LockService {
     }
 
     // mỗi lock có một token để tránh unlock nhầm
+    // Use ThreadLocal for the token, but also store in a map for async context
     private static final ThreadLocal<String> tokenHolder = new ThreadLocal<>();
+    private final java.util.concurrent.ConcurrentHashMap<String, String> asyncTokens = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Override
     public boolean tryLock(String rawKey, Duration ttl) {
@@ -47,6 +49,7 @@ public class RedisLockService implements LockService {
 
         if (Boolean.TRUE.equals(success)) {
             tokenHolder.set(token);
+            asyncTokens.put(rawKey, token); // Also store for async access
             return true;
         }
 
@@ -57,6 +60,11 @@ public class RedisLockService implements LockService {
     public void unlock(String rawKey) {
         String redisKey = key(rawKey);
         String token = tokenHolder.get();
+        
+        // Fallback to async token storage if ThreadLocal is empty
+        if (token == null) {
+            token = asyncTokens.get(rawKey);
+        }
 
         String current = redis.opsForValue().get(redisKey);
 
@@ -65,6 +73,17 @@ public class RedisLockService implements LockService {
             redis.delete(redisKey);
         }
 
+        tokenHolder.remove();
+        asyncTokens.remove(rawKey);
+    }
+
+    /**
+     * Force unlock without token check.
+     * Use this to clear stale locks on startup or admin operations.
+     */
+    public void forceUnlock(String rawKey) {
+        String redisKey = key(rawKey);
+        redis.delete(redisKey);
         tokenHolder.remove();
     }
 

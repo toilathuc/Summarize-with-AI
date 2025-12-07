@@ -1,6 +1,7 @@
 package com.example.summarizer.config;
 
 import com.example.summarizer.clients.FirecrawlClient;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,7 +43,7 @@ public class FirecrawlConfig {
     private int timeoutSeconds;
 
     @Bean
-    public FirecrawlClient firecrawlClient() {
+    public FirecrawlClient firecrawlClient(MeterRegistry registry) {
 
         // ❗ Nếu không có API key → tắt luôn Firecrawl để tránh lỗi 500 & spam request
         if (apiKey == null || apiKey.isBlank()) {
@@ -81,7 +82,8 @@ public class FirecrawlConfig {
                 maxAgeValue,
                 parseList(formats),
                 parseList(parsers),
-                timeout
+                timeout,
+                registry
         );
     }
 

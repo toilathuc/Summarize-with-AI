@@ -7,10 +7,13 @@ import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummaryStorePort;
 import com.example.summarizer.service.lock.LockService;
 import com.example.summarizer.utils.CacheUtils;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -19,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class RefreshCoordinator {
@@ -32,6 +36,10 @@ public class RefreshCoordinator {
     private final SummaryStorePort summaryStore;
     private final LockService lockService;
     private final FeedPort feedPort;
+    private final NewsCacheService cacheService;
+    private final Duration lockTtl;
+    private final Timer refreshTimer;
+    private final AtomicInteger refreshRunningGauge;
 
     // ====== STATE ======
     private volatile Instant lastRunAt = Instant.EPOCH;
@@ -41,12 +49,20 @@ public class RefreshCoordinator {
             SummarizeUseCase orchestrator,
             SummaryStorePort summaryStore,
             LockService lockService,
-            FeedPort feedPort
+            FeedPort feedPort,
+            NewsCacheService cacheService,
+            MeterRegistry registry,
+            @Value("${refresh.lock.ttl.seconds:180}") long lockTtlSeconds
     ) {
         this.orchestrator = orchestrator;
         this.summaryStore = summaryStore;
         this.lockService = lockService;
         this.feedPort = feedPort;
+        this.cacheService = cacheService;
+        this.lockTtl = Duration.ofSeconds(Math.max(30, lockTtlSeconds));
+        this.refreshRunningGauge = new AtomicInteger(0);
+        this.refreshTimer = registry.timer("summarizer_refresh_duration_seconds");
+        registry.gauge("summarizer_refresh_running", refreshRunningGauge);
     }
 
     // ========================= STATUS API =========================
@@ -69,7 +85,7 @@ public class RefreshCoordinator {
 
         boolean locked = lockService.tryLock(
                 REFRESH_LOCK,
-                Duration.ofSeconds(30)
+                lockTtl
         );
 
         if (!locked) {
@@ -90,7 +106,7 @@ public class RefreshCoordinator {
 
         boolean locked = lockService.tryLock(
                 REFRESH_LOCK,
-                Duration.ofSeconds(30)
+                lockTtl
         );
 
         if (!locked) {
@@ -106,6 +122,9 @@ public class RefreshCoordinator {
     // ========================= ASYNC PIPELINE =====================
     @Async
     public CompletableFuture<Path> runAsyncRefresh(int top, String correlationId) {
+
+        Timer.Sample sample = Timer.start();
+        refreshRunningGauge.set(1);
 
         try {
             log.info("🔥 REFRESH STARTED — top={}, cid={}", top, correlationId);
@@ -131,6 +150,10 @@ public class RefreshCoordinator {
             );
             log.info("🧾 Saved {} summaries into SummaryStore", summaries.size());
 
+            // Invalidate caches
+            cacheService.evictSummaries();
+            cacheService.evictFeed(top);
+
             // STATE
             lastRunAt = Instant.now();
             lastReason = "success";
@@ -145,6 +168,8 @@ public class RefreshCoordinator {
 
         } finally {
             lockService.unlock(REFRESH_LOCK);
+            refreshRunningGauge.set(0);
+            sample.stop(refreshTimer);
         }
     }
 

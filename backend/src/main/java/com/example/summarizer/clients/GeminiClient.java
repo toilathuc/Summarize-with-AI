@@ -4,6 +4,8 @@ import com.example.summarizer.ports.SummarizerPort;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.*;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +38,12 @@ public class GeminiClient implements SummarizerPort {
     private final int maxRetries;
     private final String provider;
     private final boolean useApiKeyAsQuery;
+    private final Counter externalCallCounter;
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
 
     public GeminiClient(String apiKey, String model, int maxRetries, String endpointUrl,
-                        String provider, boolean useApiKeyAsQuery) {
+                        String provider, boolean useApiKeyAsQuery, MeterRegistry registry) {
 
         this.apiKey = apiKey;
         this.model = model;
@@ -48,6 +51,8 @@ public class GeminiClient implements SummarizerPort {
         this.endpoint = URI.create(endpointUrl);
         this.provider = provider == null ? "raw" : provider;
         this.useApiKeyAsQuery = useApiKeyAsQuery;
+        this.externalCallCounter = registry == null ? null
+                : registry.counter("summarizer_external_calls_total", "service", "gemini");
 
         this.http = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
@@ -96,6 +101,8 @@ public class GeminiClient implements SummarizerPort {
 
             try {
                 logger.debug("Gemini({}) attempt {}", correlationId, attempt);
+
+                incrementExternalCalls();
 
                 HttpResponse<String> resp =
                         http.send(request, HttpResponse.BodyHandlers.ofString());
@@ -217,6 +224,12 @@ public class GeminiClient implements SummarizerPort {
         public RequestBody(String model, String prompt) {
             this.model = model;
             this.prompt = prompt;
+        }
+    }
+
+    private void incrementExternalCalls() {
+        if (externalCallCounter != null) {
+            externalCallCounter.increment();
         }
     }
 }

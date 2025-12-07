@@ -4,6 +4,7 @@ import com.example.summarizer.clients.GeminiClient;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
 import com.example.summarizer.service.SummarizationOrchestrator;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -41,7 +42,7 @@ public class GeminiConfig {
      * Build GeminiClient bean
      */
     @Bean
-    public SummarizerPort geminiClient() {
+    public SummarizerPort geminiClient(MeterRegistry registry) {
 
         String effectiveEndpoint = resolveEndpoint();
 
@@ -51,7 +52,8 @@ public class GeminiConfig {
                 maxRetries,
                 effectiveEndpoint,
                 provider,
-                useApiKeyAsQuery
+                useApiKeyAsQuery,
+                registry
         );
     }
 

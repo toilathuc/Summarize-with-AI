@@ -5,7 +5,9 @@ import com.example.summarizer.feeds.FeedClient;
 import com.example.summarizer.ports.ArticleStorePort;
 import com.example.summarizer.ports.ContentEnricherPort;
 import com.example.summarizer.ports.FeedPort;
+import com.example.summarizer.utils.DiffUtils;
 import com.example.summarizer.utils.ContentHashUtils;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ public class FeedService implements FeedPort {
     private final ArticleStorePort articleRepository;
     private final FeedClient client;
     private final ContentEnricherPort contentEnricher;
+    private final NewsCacheService cacheService;
+    private final MeterRegistry registry;
 
     // prevent spam-runs (Techmeme RSS rarely updates <60s)
     private long lastRssFetch = 0;
@@ -32,10 +36,14 @@ public class FeedService implements FeedPort {
 
     public FeedService(ArticleStorePort articleRepository,
                        FeedClient client,
-                       ContentEnricherPort contentEnricher) {
+                       ContentEnricherPort contentEnricher,
+                       NewsCacheService cacheService,
+                       MeterRegistry registry) {
         this.articleRepository = articleRepository;
         this.client = client;
         this.contentEnricher = contentEnricher;
+        this.cacheService = cacheService;
+        this.registry = registry;
     }
 
     @Override
@@ -43,32 +51,54 @@ public class FeedService implements FeedPort {
 
         long now = System.currentTimeMillis();
 
-        // Prevent hammering RSS
+        // Bootstrap seen-hash cache from previous snapshot
+        List<FeedArticle> cachedArticles = articleRepository.fetchLatestFromTable(limit);
+        Map<String, FeedArticle> cacheMap = cachedArticles.stream()
+                .filter(Objects::nonNull)
+                .filter(a -> a.getUrl() != null)
+                .collect(Collectors.toMap(FeedArticle::getUrl, a -> a, (a, b) -> a));
+        Map<String, String> seenHashes = loadSeenHashes(cacheMap);
+
+        // Prevent hammering RSS; prefer Redis feed cache or SQLite cache during cooldown
         if ((now - lastRssFetch) < RSS_COOLDOWN_MS) {
             logger.warn("RSS cooldown active — returning cached items");
-            return articleRepository.fetchLatestFromTable(limit);
+            Optional<List<FeedArticle>> cachedFeed = cacheService.getFeed(limit);
+            if (cachedFeed.isPresent()) {
+                recordFeedMetrics("hit", cachedFeed.get().size());
+                return cachedFeed.get();
+            }
+            return cachedArticles;
         }
         lastRssFetch = now;
 
         // 1) Load cache
-        List<FeedArticle> cached = articleRepository.fetchLatestFromTable(limit);
-        Map<String, FeedArticle> cacheMap = cached.stream()
-                .collect(Collectors.toMap(FeedArticle::getUrl, a -> a, (a, b) -> a));
-
         // 2) Fetch RSS
         List<FeedArticle> fresh = client.fetchArticles(limit);
 
         if (fresh.isEmpty()) {
-            if (!cached.isEmpty()) {
-                logger.warn("RSS fetch failed → using cached {} items", cached.size());
-                return cached;
+            if (!cachedArticles.isEmpty()) {
+                logger.warn("RSS fetch failed → using cached {} items", cachedArticles.size());
+                return cachedArticles;
             }
             logger.warn("RSS failed and cache empty → no data available");
             return List.of();
         }
 
-        // 3) Diff detection
-        List<FeedArticle> needEnrich = detectDiff(fresh, cacheMap);
+        // 3) Diff detection with Redis-backed seen set
+        DiffUtils.DiffResult diff = DiffUtils.diff(fresh, seenHashes);
+        logger.info("Diff → {} new, {} updated, {} skipped", diff.newCount(), diff.updatedCount(), diff.skippedCount());
+        recordDiffMetrics(diff);
+
+        // Apply cached content for skipped items to avoid re-crawl
+        applyCachedContent(diff.skippedItems(), cacheMap);
+
+        // Mark summary flags
+        markSummarizedFlags(fresh, diff, cacheMap);
+
+        // Items needing enrichment (new + updated)
+        List<FeedArticle> needEnrich = new ArrayList<>();
+        needEnrich.addAll(diff.newItems());
+        needEnrich.addAll(diff.updatedItems());
 
         logger.info("Diff → {} changed/new, {} reused",
                 needEnrich.size(), fresh.size() - needEnrich.size());
@@ -87,62 +117,83 @@ public class FeedService implements FeedPort {
         }
 
         // 5) Apply summarized flags
-        applySummarizedFlags(fresh, cacheMap);
+        markSummarizedFlags(fresh, diff, cacheMap);
 
         // 6) Save to DB
         articleRepository.replaceAll(fresh, DEFAULT_SOURCE);
         logger.info("Saved {} articles into SQLite cache", fresh.size());
 
+        cacheService.putFeed(limit, fresh);
+        cacheService.saveSeenHashes(diff.newHashes());
+
         return fresh;
     }
 
-    /**
-     * Diff detection:
-     * - NEW → enrich
-     * - CHANGED → enrich
-     * - SAME → reuse
-     */
-    private List<FeedArticle> detectDiff(List<FeedArticle> fresh,
-                                         Map<String, FeedArticle> cacheMap) {
+    private Map<String, String> loadSeenHashes(Map<String, FeedArticle> cacheMap) {
+        Map<String, String> seenHashes = new HashMap<>(cacheService.loadSeenHashes());
+        if (!seenHashes.isEmpty()) return seenHashes;
 
-        List<FeedArticle> needEnrich = new ArrayList<>();
-
-        for (FeedArticle f : fresh) {
-            FeedArticle old = cacheMap.get(f.getUrl());
-
-            if (old == null) {
-                logger.debug("[NEW] {}", f.getTitle());
-                needEnrich.add(f);
-                continue;
-            }
-
-            boolean same = ContentHashUtils.isContentHashMatch(old.getDescription(), f.getDescription());
-
-            if (!same) {
-                logger.debug("[CHANGED] {}", f.getTitle());
-                needEnrich.add(f);
-            } else {
-                logger.debug("[REUSED] {}", f.getTitle());
-                f.setContent(old.getContent());
+        // Bootstrap from SQLite if Redis is empty
+        for (Map.Entry<String, FeedArticle> entry : cacheMap.entrySet()) {
+            FeedArticle a = entry.getValue();
+            String payload = String.join("|",
+                    safe(a.getUrl()),
+                    safe(a.getTitle()),
+                    safe(a.getDescription()),
+                    safe(a.getContent())
+            );
+            String hash = ContentHashUtils.contentHash(payload);
+            if (hash != null) {
+                seenHashes.put(entry.getKey(), hash);
             }
         }
-
-        return needEnrich;
+        return seenHashes;
     }
 
-    /**
-     * Safely mark isSummarized only if content is truly unchanged.
-     */
-    private void applySummarizedFlags(List<FeedArticle> fresh,
-                                      Map<String, FeedArticle> cacheMap) {
-
-        for (FeedArticle f : fresh) {
+    private void applyCachedContent(List<FeedArticle> skipped, Map<String, FeedArticle> cacheMap) {
+        for (FeedArticle f : skipped) {
             FeedArticle old = cacheMap.get(f.getUrl());
             if (old == null) continue;
+            f.setContent(old.getContent());
+        }
+    }
 
-            if (ContentHashUtils.isContentHashMatch(old.getContent(), f.getContent())) {
+    private void markSummarizedFlags(List<FeedArticle> fresh,
+                                     DiffUtils.DiffResult diff,
+                                     Map<String, FeedArticle> cacheMap) {
+        Set<String> skipUrls = diff.skippedItems().stream()
+                .map(FeedArticle::getUrl)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        for (FeedArticle f : fresh) {
+            if (skipUrls.contains(f.getUrl())) {
                 f.setIsSummarized(true);
+                continue;
+            }
+            // Only mark summarized when content truly matches
+            FeedArticle old = cacheMap.get(f.getUrl());
+            if (old != null && ContentHashUtils.isContentHashMatch(old.getContent(), f.getContent())) {
+                f.setIsSummarized(true);
+            } else {
+                f.setIsSummarized(false);
             }
         }
+    }
+
+    private void recordDiffMetrics(DiffUtils.DiffResult diff) {
+        if (registry == null) return;
+        registry.counter("summarizer_refresh_articles_total", "result", "new").increment(diff.newCount());
+        registry.counter("summarizer_refresh_articles_total", "result", "updated").increment(diff.updatedCount());
+        registry.counter("summarizer_refresh_articles_total", "result", "skipped").increment(diff.skippedCount());
+    }
+
+    private void recordFeedMetrics(String event, int count) {
+        if (registry == null) return;
+        registry.counter("summarizer_feed_items_total", "event", event).increment(count);
+    }
+
+    private String safe(String s) {
+        return s == null ? "" : s;
     }
 }

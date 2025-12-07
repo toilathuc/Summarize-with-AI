@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,7 @@ public class FirecrawlClient {
     private final List<String> formats;
     private final List<String> parsers;
     private final Duration timeout;
+    private final Counter externalCallCounter;
 
     // Retry/backoff
     private static final int MAX_RETRY = 3;
@@ -64,7 +67,8 @@ public class FirecrawlClient {
                            Long maxAge,
                            List<String> formats,
                            List<String> parsers,
-                           Duration timeout) {
+                           Duration timeout,
+                           MeterRegistry registry) {
 
         this.endpoint = endpointUrl == null ? null : URI.create(endpointUrl);
         this.apiKey = apiKey;
@@ -77,6 +81,8 @@ public class FirecrawlClient {
         this.parsers = parsers == null ? List.of() : List.copyOf(parsers);
 
         this.timeout = (timeout == null ? Duration.ofSeconds(45) : timeout);
+        this.externalCallCounter = registry == null ? null
+                : registry.counter("summarizer_external_calls_total", "service", "firecrawl");
 
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(6))
@@ -94,6 +100,7 @@ public class FirecrawlClient {
     public Optional<String> fetchMarkdown(String targetUrl) {
         if (!enabled) return Optional.empty();
         if (!validateUrl(targetUrl)) return Optional.empty();
+        incrementExternalCalls();
 
         // Skip paywall domains
         if (isPaywallDomain(targetUrl)) {
@@ -264,5 +271,11 @@ public class FirecrawlClient {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    private void incrementExternalCalls() {
+        if (externalCallCounter != null) {
+            externalCallCounter.increment();
+        }
     }
 }

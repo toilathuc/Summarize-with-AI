@@ -57,6 +57,21 @@ public class RedisLockService implements LockService {
     }
 
     @Override
+    public void extendLock(String rawKey, Duration ttl) {
+        String redisKey = key(rawKey);
+        String token = tokenHolder.get();
+
+        if (token == null) {
+            token = asyncTokens.get(rawKey);
+        }
+
+        String current = redis.opsForValue().get(redisKey);
+        if (token != null && token.equals(current)) {
+            redis.expire(redisKey, ttl);
+        }
+    }
+
+    @Override
     public void unlock(String rawKey) {
         String redisKey = key(rawKey);
         String token = tokenHolder.get();

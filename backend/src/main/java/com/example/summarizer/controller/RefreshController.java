@@ -44,7 +44,7 @@ public class RefreshController {
                     "running", true,
                     "reason", status.reason(),
                     "lastRunAt", status.lastRunAt(),
-                    "correlation_id_running_job", cid
+                    "correlation_id_running_job", status.correlationId()
             ));
         }
 
@@ -72,7 +72,8 @@ public class RefreshController {
         return ResponseEntity.ok(Map.of(
                 "running", s.running(),
                 "lastRunAt", s.lastRunAt(),
-                "reason", s.reason()
+                "reason", s.reason(),
+                "correlationId", s.correlationId()
         ));
     }
 }

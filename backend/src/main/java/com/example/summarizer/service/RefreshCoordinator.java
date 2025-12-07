@@ -23,6 +23,10 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -41,10 +45,17 @@ public class RefreshCoordinator {
     private final Duration lockTtl;
     private final Timer refreshTimer;
     private final AtomicInteger refreshRunningGauge;
+    private final ScheduledExecutorService lockRefresher =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "refresh-lock-refresher");
+                t.setDaemon(true);
+                return t;
+            });
 
     // ====== STATE ======
     private volatile Instant lastRunAt = Instant.EPOCH;
     private volatile String lastReason = "never_run";
+    private volatile String currentCorrelationId = null;
 
     public RefreshCoordinator(
             SummarizeUseCase orchestrator,
@@ -91,7 +102,8 @@ public class RefreshCoordinator {
         return new RefreshStatus(
                 running,
                 lastRunAt != null ? lastRunAt : Instant.EPOCH,
-                lastReason != null ? lastReason : "unknown"
+                lastReason != null ? lastReason : "unknown",
+                currentCorrelationId
         );
     }
 
@@ -143,6 +155,9 @@ public class RefreshCoordinator {
 
         Timer.Sample sample = Timer.start();
         refreshRunningGauge.set(1);
+        currentCorrelationId = correlationId;
+
+        ScheduledFuture<?> renewal = scheduleLockRenewal();
 
         try {
             log.info("🔥 REFRESH STARTED — top={}, cid={}", top, correlationId);
@@ -187,10 +202,26 @@ public class RefreshCoordinator {
         } finally {
             lockService.unlock(REFRESH_LOCK);
             refreshRunningGauge.set(0);
+            if (renewal != null) {
+                renewal.cancel(true);
+            }
+            currentCorrelationId = null;
             sample.stop(refreshTimer);
         }
     }
 
+    private ScheduledFuture<?> scheduleLockRenewal() {
+        // Refresh the lock before TTL expires to avoid double-runs on long jobs.
+        long intervalSeconds = Math.max(5, lockTtl.getSeconds() / 3);
+        return lockRefresher.scheduleAtFixedRate(() -> {
+            try {
+                lockService.extendLock(REFRESH_LOCK, lockTtl);
+            } catch (Exception ex) {
+                log.warn("⚠️ Failed to extend refresh lock: {}", ex.getMessage());
+            }
+        }, intervalSeconds, intervalSeconds, TimeUnit.SECONDS);
+    }
+
     // ====== RECORD ======
-    public record RefreshStatus(boolean running, Instant lastRunAt, String reason) {}
+    public record RefreshStatus(boolean running, Instant lastRunAt, String reason, String correlationId) {}
 }

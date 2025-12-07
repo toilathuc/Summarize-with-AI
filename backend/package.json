@@ -1,5 +1,11 @@
 {
   "devDependencies": {
     "k6-html-reporter": "^1.0.5"
+  },
+  "scripts": {
+    "refresh-stress": "k6 run src/test/java/performance/refresh-stress.js",
+    "summaries-stress": "k6 run src/test/java/performance/summaries-stress.js",
+    "mix-test": "k6 run src/test/java/performance/mix-test.js",
+    "report": "node report/k6-report.js"
   }
 }

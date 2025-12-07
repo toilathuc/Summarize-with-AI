@@ -2,7 +2,9 @@ const { generateSummaryReport } = require('k6-html-reporter');
 const fs = require('fs');
 
 const jsonFiles = [
-  'report/raw/report.json',
+  'report/raw/refresh-stress.json',
+  'report/raw/summaries-stress.json',
+   'report/raw/mix-test.json',
 ];
 
 jsonFiles.forEach((file) => {

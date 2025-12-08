@@ -12,12 +12,17 @@ public class SummaryPayload {
     @JsonProperty("items")
     private List<SummaryResult> summaries;
 
-    private final Map<String, Object> extra = new HashMap<>();
+    private Map<String, Object> extra = new HashMap<>();
 
     public SummaryPayload() {}
 
     public SummaryPayload(List<SummaryResult> summaries) {
         this.summaries = summaries;
+    }
+
+    public SummaryPayload(List<SummaryResult> summaries, Map<String, Object> extra) {
+        this.summaries = summaries;
+        this.extra = extra != null ? extra : new HashMap<>();
     }
 
     public List<SummaryResult> getSummaries() { return summaries; }

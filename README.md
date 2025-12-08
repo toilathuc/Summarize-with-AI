@@ -229,19 +229,41 @@ Lưu vào SQLite + SummaryStore
 Unlock redis và kết thúc
 
 📌 9. Thư mục quan trọng trong backend
-service/
-  ├── lock/                # RedisLockService
-  ├── ratelimit/           # RedisRateLimitService
-  ├── RefreshCoordinator   # Điều phối job refresh
-  ├── ScheduledRefresh...  # Tự động refresh
-  ├── FeedService          # Lấy RSS + diff
-  ├── ContentCrawler...    # Firecrawl
-  ├── Summarization...     # Gemini orchestrator
 
-ports/                     # Clean Architecture ports
-repository/                # SQLite repositories
-clients/                   # FirecrawlClient, GeminiClient
-
+```
+backend/src/main/java/com/example/summarizer/
+├── domain/                  # Model thuần Java (Entities, POJOs)
+│   ├── FeedArticle.java
+│   ├── SummaryResult.java
+│   ├── SummaryRequest.java
+│   └── SummaryPayload.java
+│
+├── ports/                   # Interface cho Use Cases (Hexagonal Architecture)
+│   ├── SummarizeUseCase.java
+│   ├── FeedPort.java
+│   ├── ArticleStorePort.java
+│   ├── SummaryStorePort.java
+│   └── ContentEnricherPort.java
+│
+├── service/                 # Business Logic (Triển khai các Use Cases)
+│   ├── SummarizationOrchestrator.java  # Điều phối quy trình tóm tắt
+│   ├── FeedService.java                # Xử lý tin tức đầu vào
+│   ├── RefreshCoordinator.java         # Quản lý quy trình làm mới
+│   ├── StorageService.java             # Logic lưu trữ SQLite
+│   └── NewsCacheService.java           # Logic caching Redis
+│
+├── clients/                 # External Clients (Adapters cho bên thứ 3)
+│   ├── GeminiClient.java               # Adapter cho Google Gemini AI
+│   └── FirecrawlClient.java            # Adapter cho Firecrawl (Scraping)
+│
+├── adapters/                # Các Adapter hạ tầng khác
+│   └── SystemClockAdapter.java
+│
+└── controller/              # REST API (Entry points)
+    ├── SummariesController.java        # API lấy danh sách tóm tắt
+    ├── RefreshController.java          # API kích hoạt làm mới thủ công
+    └── SummarizeController.java
+```
 
 Đây là kiến trúc kiểu Clean-Architecture + Hexagonal.
 

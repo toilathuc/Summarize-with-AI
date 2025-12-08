@@ -5,7 +5,6 @@ import com.example.summarizer.domain.SummaryRequest;
 import com.example.summarizer.domain.SummaryResult;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
-import com.example.summarizer.utils.CacheUtils;
 import com.example.summarizer.utils.ChunkUtils;
 import com.example.summarizer.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -26,24 +25,25 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
     // ==========================
     // CONFIG
     // ==========================
-    private static final int MAX_PARALLEL_BATCHES = 3;
+    private static final int MAX_PARALLEL_BATCHES = 1;
     private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(45);
     private static final int BATCH_RETRY = 1;
     private static final int CIRCUIT_THRESHOLD = 3;
-    private static final int MAX_CONTENT_CHARS = 4000;
+    private static final int MAX_CONTENT_CHARS = 500;
 
     private final SummarizerPort client;
+    private final NewsCacheService cache;
     private final String promptTemplate;
     private final int batchSize;
     private final Semaphore semaphore = new Semaphore(MAX_PARALLEL_BATCHES);
     private final ExecutorService pool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
     private final ObjectMapper mapper = new ObjectMapper();
-
     private final AtomicInteger failures = new AtomicInteger(0);
     private volatile boolean circuitOpen = false;
 
-    public SummarizationOrchestrator(SummarizerPort client, String promptTemplate, int batchSize) {
+    public SummarizationOrchestrator(SummarizerPort client, NewsCacheService cache, String promptTemplate, int batchSize) {
         this.client = client;
+        this.cache = cache;
         this.promptTemplate = promptTemplate;
         this.batchSize = Math.max(1, batchSize);
     }
@@ -54,15 +54,8 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
 
     @Override
     public List<SummaryResult> summarize(List<FeedArticle> articles) throws Exception {
-        return summarize(articles, null);
-    }
-
-    @Override
-    public List<SummaryResult> summarize(List<FeedArticle> articles, Map<String, SummaryResult> cache) throws Exception {
 
         if (articles == null || articles.isEmpty()) return List.of();
-
-        Map<String, SummaryResult> safeCache = cache == null ? Map.of() : cache;
 
         List<SummaryResult> ordered = new ArrayList<>(Collections.nCopies(articles.size(), null));
         List<PendingRequest> pending = new ArrayList<>();
@@ -72,9 +65,9 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         for (int i = 0; i < articles.size(); i++) {
             FeedArticle art = articles.get(i);
             if (art.getIsSummarized()) {
-               SummaryResult c = findCachedResult(art, safeCache);
-               if (c != null) {
-                   ordered.set(i, c);
+               SummaryResult result = cache.getSummaryResult(art.getUrl()).orElse(null);
+               if (result != null) {
+                   ordered.set(i, result);
                    reused++;
                } else {
                    // Cache miss for summarized article - re-summarize it
@@ -100,6 +93,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
             semaphore.acquire(); // Limit parallel
             fs.add(pool.submit(() -> {
                 try {
+                    Thread.sleep(5000);
                     return processBatchWithRetry(batch, myId);
                 } finally {
                     semaphore.release();
@@ -254,12 +248,6 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
             ));
         }
         return out;
-    }
-
-    private SummaryResult findCachedResult(FeedArticle article, Map<String, SummaryResult> cache) {
-        if (article == null) return null;
-        String key = CacheUtils.cacheKey(article.getUrl());
-        return key == null ? null : cache.get(key);
     }
 
     // ===============================================================

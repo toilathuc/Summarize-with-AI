@@ -67,7 +67,8 @@ public class HexagonalArchitectureProofTest {
         // Lưu ý: Chúng ta khởi tạo class logic mà không cần Spring (@Autowired)
         // Đây là điểm mạnh: Logic độc lập hoàn toàn.
         SummarizationOrchestrator orchestrator = new SummarizationOrchestrator(
-                fakeAi, 
+                fakeAi,
+                null, // Cache service (not used in this test)
                 "Fake Prompt Template", 
                 1 // Batch size
         );
@@ -87,7 +88,8 @@ public class HexagonalArchitectureProofTest {
         SummarizerPort brokenAi = new FakeAiAdapter(true);
         
         SummarizationOrchestrator orchestrator = new SummarizationOrchestrator(
-                brokenAi, 
+                brokenAi,
+                null, // Cache service
                 "Fake Prompt Template", 
                 1
         );

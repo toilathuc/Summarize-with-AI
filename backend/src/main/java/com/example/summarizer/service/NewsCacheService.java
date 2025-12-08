@@ -2,6 +2,7 @@ package com.example.summarizer.service;
 
 import com.example.summarizer.cache.KeyValueCacheClient;
 import com.example.summarizer.domain.FeedArticle;
+import com.example.summarizer.domain.SummaryResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -22,6 +23,7 @@ public class NewsCacheService {
     private final ObjectMapper mapper = new ObjectMapper();
     private final String prefix;
     private final Duration summariesTtl;
+    private final Duration summaryResultTtl;
     private final Duration feedTtl;
     private final Duration seenTtl;
     private final MeterRegistry registry;
@@ -31,6 +33,7 @@ public class NewsCacheService {
             MeterRegistry registry,
             @Value("${redis.key-prefix:summarizer}") String prefix,
             @Value("${cache.summaries.ttl.seconds:3600}") long summariesTtlSeconds,
+            @Value("${cache.summary-result.ttl.seconds:86400}") long summaryResultTtlSeconds,
             @Value("${cache.feed.ttl.seconds:120}") long feedTtlSeconds,
             @Value("${cache.seen.ttl.seconds:172800}") long seenTtlSeconds
     ) {
@@ -38,6 +41,7 @@ public class NewsCacheService {
         this.registry = registry;
         this.prefix = prefix;
         this.summariesTtl = Duration.ofSeconds(Math.max(1, summariesTtlSeconds));
+        this.summaryResultTtl = Duration.ofSeconds(Math.max(1, summaryResultTtlSeconds));
         this.feedTtl = Duration.ofSeconds(Math.max(1, feedTtlSeconds));
         this.seenTtl = Duration.ofSeconds(Math.max(1, seenTtlSeconds));
     }
@@ -73,6 +77,38 @@ public class NewsCacheService {
     public void evictSummaries() {
         cache.delete(summariesKey());
     }
+
+
+    /* ====================== SUMMARY-RESULT =========================== */
+    public Optional<SummaryResult> getSummaryResult(String url) {
+        try {
+            String raw = cache.get(summaryResultKey(url));
+            if (raw == null) {
+                recordCacheMetric("summary_result", "miss");
+                return Optional.empty();
+            }
+            recordCacheMetric("summary_result", "hit");
+            SummaryResult result = mapper.readValue(raw, SummaryResult.class);
+            return Optional.of(result);
+        } catch (Exception ex) {
+            log.warn("Failed to read summary-result cache: {}", ex.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public void putSummaryResult(SummaryResult result) {
+        try {
+            String payload = mapper.writeValueAsString(result);
+            cache.set(summaryResultKey(result.getUrl()), payload, summaryResultTtl);
+        } catch (Exception ex) {
+            log.warn("Failed to write summary-result cache: {}", ex.getMessage());
+        }
+    }
+
+    public void evictSummaryResult(String url) {
+        cache.delete(summaryResultKey(url));
+    }
+
 
     /* ====================== FEED =========================== */
 
@@ -139,6 +175,10 @@ public class NewsCacheService {
 
     private String seenKey() {
         return prefix + ":seen:hashes";
+    }
+
+    private String summaryResultKey(String url) {
+        return prefix + ":cache:summary-result:" + url;
     }
 
     private void recordCacheMetric(String cacheName, String result) {

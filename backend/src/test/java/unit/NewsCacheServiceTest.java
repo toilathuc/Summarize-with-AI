@@ -21,6 +21,7 @@ class NewsCacheServiceTest {
                 registry,
                 "summarizer:test",
                 3600,
+                86400, // summaryResultTtl
                 120,
                 86400
         );
@@ -48,6 +49,7 @@ class NewsCacheServiceTest {
                 registry,
                 "summarizer:test",
                 3600,
+                86400, // summaryResultTtl
                 120,
                 86400
         );
@@ -67,6 +69,7 @@ class NewsCacheServiceTest {
                 new SimpleMeterRegistry(),
                 "summarizer:test",
                 3600,
+                86400, // summaryResultTtl
                 120,
                 86400
         );

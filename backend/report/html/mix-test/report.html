@@ -34,7 +34,7 @@
     <div class="jumbotron jumbotron-fluid bg-white my-5">
       <div class="container px-0 mb-5">
         <h1 class="display-2 text-primary text-dark text-center">K6 Summary Report</h1>
-        <p class="text-secondary text-center">Generated at 12/8/2025, 9:19:08 AM</p>
+        <p class="text-secondary text-center">Generated at 12/9/2025, 12:41:29 AM</p>
       </div>
 
       
@@ -58,19 +58,6 @@
             <ul class="list-group">
               
                 <li class="list-group-item">
-                  <h6>http_req_failed</h6>
-                  <ul class="list-group">
-                    
-                    
-                    <li class="list-group-item fail-block">
-                    
-                      rate&lt;0.20
-                    </li>
-                    
-                  </ul>
-                </li>
-              
-                <li class="list-group-item">
                   <h6>http_req_duration</h6>
                   <ul class="list-group">
                     
@@ -78,6 +65,19 @@
                     <li class="list-group-item success-block">
                     
                       p(95)&lt;2000
+                    </li>
+                    
+                  </ul>
+                </li>
+              
+                <li class="list-group-item">
+                  <h6>http_req_failed</h6>
+                  <ul class="list-group">
+                    
+                    
+                    <li class="list-group-item fail-block">
+                    
+                      rate&lt;0.05
                     </li>
                     
                   </ul>
@@ -118,8 +118,8 @@
                 
                   <th scope="row" class="text-secondary">1</th>
                   <td>data_received</td>
-                  <td>437092</td>
-                  <td>10751.061239682182</td>
+                  <td>15960376</td>
+                  <td>392235.25205006293</td>
                 </tr>
                 
                 
@@ -127,8 +127,8 @@
                 
                   <th scope="row" class="text-secondary">2</th>
                   <td>data_sent</td>
-                  <td>205196</td>
-                  <td>5047.163439591264</td>
+                  <td>204692</td>
+                  <td>5030.42147707745</td>
                 </tr>
                 
                 
@@ -137,7 +137,7 @@
                   <th scope="row" class="text-secondary">3</th>
                   <td>http_reqs</td>
                   <td>2230</td>
-                  <td>54.85084733761145</td>
+                  <td>54.8035091448748</td>
                 </tr>
                 
                 
@@ -146,7 +146,7 @@
                   <th scope="row" class="text-secondary">4</th>
                   <td>iterations</td>
                   <td>2230</td>
-                  <td>54.85084733761145</td>
+                  <td>54.8035091448748</td>
                 </tr>
                 
               </tbody>
@@ -177,8 +177,8 @@
                 
                   <th scope="row" class="text-secondary">1</th>
                   <td>http_req_blocked</td>
-                  <td>0.03 ms</td>
-                  <td>4.15 ms</td>
+                  <td>0.04 ms</td>
+                  <td>2.24 ms</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
@@ -191,7 +191,7 @@
                   <th scope="row" class="text-secondary">2</th>
                   <td>http_req_connecting</td>
                   <td>0.03 ms</td>
-                  <td>4.15 ms</td>
+                  <td>2.24 ms</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
@@ -203,34 +203,47 @@
                 
                   <th scope="row" class="text-secondary">3</th>
                   <td>http_req_duration</td>
-                  <td>2.10 ms</td>
-                  <td>10.53 ms</td>
-                  <td>2.05 ms</td>
-                  <td>0.00 ms</td>
-                  <td>3.18 ms</td>
-                  <td>3.53 ms</td>
+                  <td>2.47 ms</td>
+                  <td>21.51 ms</td>
+                  <td>2.28 ms</td>
+                  <td>0.30 ms</td>
+                  <td>3.98 ms</td>
+                  <td>4.64 ms</td>
                 </tr>
                 
                 
                 <tr>
                 
                   <th scope="row" class="text-secondary">4</th>
-                  <td>http_req_receiving</td>
-                  <td>0.16 ms</td>
-                  <td>1.53 ms</td>
-                  <td>0.00 ms</td>
-                  <td>0.00 ms</td>
-                  <td>0.70 ms</td>
-                  <td>0.93 ms</td>
+                  <td>http_req_duration{expected_response:true}</td>
+                  <td>2.63 ms</td>
+                  <td>21.51 ms</td>
+                  <td>2.47 ms</td>
+                  <td>0.30 ms</td>
+                  <td>4.20 ms</td>
+                  <td>4.99 ms</td>
                 </tr>
                 
                 
                 <tr>
                 
                   <th scope="row" class="text-secondary">5</th>
+                  <td>http_req_receiving</td>
+                  <td>0.20 ms</td>
+                  <td>2.17 ms</td>
+                  <td>0.00 ms</td>
+                  <td>0.00 ms</td>
+                  <td>0.76 ms</td>
+                  <td>0.96 ms</td>
+                </tr>
+                
+                
+                <tr>
+                
+                  <th scope="row" class="text-secondary">6</th>
                   <td>http_req_sending</td>
                   <td>0.01 ms</td>
-                  <td>1.02 ms</td>
+                  <td>0.79 ms</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
@@ -240,7 +253,7 @@
                 
                 <tr>
                 
-                  <th scope="row" class="text-secondary">6</th>
+                  <th scope="row" class="text-secondary">7</th>
                   <td>http_req_tls_handshaking</td>
                   <td>0.00 ms</td>
                   <td>0.00 ms</td>
@@ -253,27 +266,27 @@
                 
                 <tr>
                 
-                  <th scope="row" class="text-secondary">7</th>
+                  <th scope="row" class="text-secondary">8</th>
                   <td>http_req_waiting</td>
-                  <td>1.93 ms</td>
-                  <td>10.53 ms</td>
-                  <td>1.86 ms</td>
+                  <td>2.25 ms</td>
+                  <td>21.51 ms</td>
+                  <td>2.05 ms</td>
                   <td>0.00 ms</td>
-                  <td>3.02 ms</td>
-                  <td>3.35 ms</td>
+                  <td>3.66 ms</td>
+                  <td>4.21 ms</td>
                 </tr>
                 
                 
                 <tr>
                 
-                  <th scope="row" class="text-secondary">8</th>
+                  <th scope="row" class="text-secondary">9</th>
                   <td>iteration_duration</td>
-                  <td>1002.74 ms</td>
-                  <td>1011.09 ms</td>
-                  <td>1002.70 ms</td>
-                  <td>1000.23 ms</td>
-                  <td>1003.90 ms</td>
-                  <td>1004.36 ms</td>
+                  <td>1003.13 ms</td>
+                  <td>1025.57 ms</td>
+                  <td>1002.88 ms</td>
+                  <td>1000.40 ms</td>
+                  <td>1004.88 ms</td>
+                  <td>1005.68 ms</td>
                 </tr>
                 
               </tbody>
@@ -301,9 +314,9 @@
                   
                     <th scope="row" class="text-secondary">1</th>
                     <td>http_req_failed</td>
-                    <td>1</td>
-                    <td>2230</td>
-                    <td>0</td>
+                    <td>0.44349775784753365</td>
+                    <td>989</td>
+                    <td>1241</td>
                   </tr>
                   
                 </tbody>
@@ -333,7 +346,7 @@
                     <td>vus</td>
                     <td>99</td>
                     <td>4</td>
-                    <td>10</td>
+                    <td>11</td>
                   </tr>
                   
                   

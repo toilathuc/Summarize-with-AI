@@ -8,5 +8,4 @@ import java.util.Map;
 
 public interface SummarizeUseCase {
     List<SummaryResult> summarize(List<FeedArticle> articles) throws Exception;
-    List<SummaryResult> summarize(List<FeedArticle> articles, Map<String, SummaryResult> cache) throws Exception;
 }

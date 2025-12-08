@@ -44,7 +44,7 @@ public class RefreshController {
                     "running", true,
                     "reason", status.reason(),
                     "lastRunAt", status.lastRunAt(),
-                    "correlation_id_running_job", status.correlationId()
+                    "correlation_id_running_job", status.correlationId() != null ? status.correlationId() : "unknown"
             ));
         }
 

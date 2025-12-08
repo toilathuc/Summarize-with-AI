@@ -53,12 +53,6 @@ public class FeedService implements FeedPort {
 
         // Bootstrap seen-hash cache from previous snapshot
         List<FeedArticle> cachedArticles = articleRepository.fetchLatestFromTable(limit);
-        Map<String, FeedArticle> cacheMap = cachedArticles.stream()
-                .filter(Objects::nonNull)
-                .filter(a -> a.getUrl() != null)
-                .collect(Collectors.toMap(FeedArticle::getUrl, a -> a, (a, b) -> a));
-        Map<String, String> seenHashes = loadSeenHashes(cacheMap);
-
         // Prevent hammering RSS; prefer Redis feed cache or SQLite cache during cooldown
         if ((now - lastRssFetch) < RSS_COOLDOWN_MS) {
             logger.warn("RSS cooldown active — returning cached items");
@@ -69,6 +63,12 @@ public class FeedService implements FeedPort {
             }
             return cachedArticles;
         }
+        Map<String, FeedArticle> cacheMap = cachedArticles.stream()
+                .filter(Objects::nonNull)
+                .filter(a -> a.getUrl() != null)
+                .collect(Collectors.toMap(FeedArticle::getUrl, a -> a, (a, b) -> a));
+        Map<String, String> seenHashes = loadSeenHashes(cacheMap);
+
         lastRssFetch = now;
 
         // 1) Load cache
@@ -91,9 +91,6 @@ public class FeedService implements FeedPort {
 
         // Apply cached content for skipped items to avoid re-crawl
         applyCachedContent(diff.skippedItems(), cacheMap);
-
-        // Mark summary flags
-        markSummarizedFlags(fresh, diff, cacheMap);
 
         // Items needing enrichment (new + updated)
         List<FeedArticle> needEnrich = new ArrayList<>();

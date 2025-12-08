@@ -96,11 +96,16 @@ public class GeminiClient implements SummarizerPort {
         long backoff = 500;
         int attempt = 0;
 
-        while (true) {
+        while (attempt <= maxRetries) {
             attempt++;
 
             try {
                 logger.debug("Gemini({}) attempt {}", correlationId, attempt);
+
+                if (attempt > maxRetries) {
+                    logger.error("Gemini({}) exceeded max retries ({})", correlationId, maxRetries);
+                    throw new IOException("Gemini exceeded max retries (" + maxRetries + ")");
+                }
 
                 incrementExternalCalls();
 
@@ -132,10 +137,6 @@ public class GeminiClient implements SummarizerPort {
                 logger.warn("Gemini({}) retryable {} → retry {} of {}", correlationId, code, attempt, maxRetries);
 
             } catch (IOException | InterruptedException ex) {
-                if (attempt > maxRetries) {
-                    logger.error("Gemini({}) FAILED after {} retries: {}", correlationId, maxRetries, ex.getMessage());
-                    throw ex;
-                }
 
                 logger.warn("Gemini({}) call exception → retry {}/{}: {}",
                         correlationId, attempt, maxRetries, ex.getMessage());
@@ -144,6 +145,7 @@ public class GeminiClient implements SummarizerPort {
             Thread.sleep(backoff);
             backoff = Math.min(backoff * 2, 5000); // max 5s
         }
+        throw new IOException("Gemini failed after " + maxRetries + " retries");
     }
 
 

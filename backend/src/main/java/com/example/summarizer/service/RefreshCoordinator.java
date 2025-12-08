@@ -1,14 +1,16 @@
 package com.example.summarizer.service;
 
 import com.example.summarizer.domain.FeedArticle;
+import com.example.summarizer.domain.SummaryPayload;
 import com.example.summarizer.domain.SummaryResult;
 import com.example.summarizer.ports.FeedPort;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummaryStorePort;
 import com.example.summarizer.service.lock.LockService;
-import com.example.summarizer.utils.CacheUtils;
+import com.example.summarizer.utils.PayloadToMapUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -78,20 +80,21 @@ public class RefreshCoordinator {
     }
 
     /**
-     * Clear any stale locks on startup.
-     * This ensures orphaned locks from crashed processes don't block new jobs.
+     * Initialize the coordinator.
+     * Note: We do NOT clear stale locks here anymore to support multiple instances.
+     * We rely on the lock TTL to expire naturally if a previous instance crashed.
      */
     @PostConstruct
     public void init() {
         if (lockService.isLocked(REFRESH_LOCK)) {
-            log.warn("🧹 Found stale refresh lock on startup - clearing it");
-            if (lockService instanceof com.example.summarizer.service.lock.RedisLockService redisLock) {
-                redisLock.forceUnlock(REFRESH_LOCK);
-            } else {
-                lockService.unlock(REFRESH_LOCK);
-            }
+            log.info("ℹ️ Refresh lock is currently held. Relying on TTL to expire it if stale.");
         }
         log.info("✅ RefreshCoordinator initialized");
+    }
+
+    @PreDestroy
+    public void tearDown() {
+        lockRefresher.shutdown();
     }
 
     // ========================= STATUS API =========================
@@ -166,26 +169,33 @@ public class RefreshCoordinator {
             List<FeedArticle> articles = feedPort.fetchLatest(top);
             log.info("📥 Fetched {} articles from Techmeme", articles.size());
 
-            // CACHE LOAD
-            Map<String, SummaryResult> cache = CacheUtils.loadSummaryCache(summaryStore, log);
-
             // SUMMARIZE
-            List<SummaryResult> summaries = orchestrator.summarize(articles, cache);
+            List<SummaryResult> summaries = orchestrator.summarize(articles);
             log.info("🧠 Summarized {} articles", summaries.size());
 
-            // STORE
-            Path out = summaryStore.save(
-                    summaries,
-                    Map.of(
-                            "last_updated", OffsetDateTime.now().toString(),
-                            "correlation_id", correlationId
-                    )
+            Map<String, Object> extras = Map.of(
+                    "last_updated", OffsetDateTime.now().toString(),
+                    "correlation_id", correlationId
             );
+
+            // STORE
+            Path out = summaryStore.save(summaries, extras);
             log.info("🧾 Saved {} summaries into SummaryStore", summaries.size());
 
             // Invalidate caches
             cacheService.evictSummaries();
             cacheService.evictFeed(top);
+
+            // Insert summaries into cache
+            SummaryPayload payload = new SummaryPayload(summaries, extras);
+            cacheService.putSummaries(PayloadToMapUtils.convertPayloadToMap(payload));
+            log.info("🗃 Updated summaries cache");
+
+            // Insert each summary-result into cache
+            for (SummaryResult result : summaries) {
+                cacheService.putSummaryResult(result);
+            }
+            log.info("🗃 Updated summaries and summary-results caches");
 
             // STATE
             lastRunAt = Instant.now();
@@ -195,16 +205,14 @@ public class RefreshCoordinator {
             return CompletableFuture.completedFuture(out);
 
         } catch (Exception ex) {
-            log.error("❌ REFRESH FAILED — cid=" + correlationId, ex);
+            log.error("❌ REFRESH FAILED — cid={}", correlationId, ex);
             lastReason = "error";
             return CompletableFuture.failedFuture(ex);
 
         } finally {
             lockService.unlock(REFRESH_LOCK);
             refreshRunningGauge.set(0);
-            if (renewal != null) {
-                renewal.cancel(true);
-            }
+            renewal.cancel(true);
             currentCorrelationId = null;
             sample.stop(refreshTimer);
         }

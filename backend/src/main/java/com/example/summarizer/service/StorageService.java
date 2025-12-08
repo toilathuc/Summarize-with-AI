@@ -195,10 +195,7 @@ public class StorageService implements SummaryStorePort {
             List<SummaryResult> summaries = fetchSummaries(conn);
             Map<String, Object> metadata = fetchMetadata(conn);
 
-            SummaryPayload payload = new SummaryPayload(summaries);
-            metadata.forEach(payload::putExtra);
-
-            return payload;
+            return new SummaryPayload(summaries, metadata);
 
         } catch (SQLException e) {
             throw new IOException("Failed to load summaries from SQLite", e);

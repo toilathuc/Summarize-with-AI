@@ -1,5 +1,5 @@
-﻿const SUMMARY_PATH = "./summaries.json";
-const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by FastAPI
+const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by the backend
+const REFRESH_API = "/api/refresh";
 
 // Slow `/api/refresh` endpoints were retired. Admins should run
 // `python update_news.py` (or the Windows batch) whenever they need fresh data.
@@ -32,21 +32,33 @@ export async function refreshNewsFast() {
   }
 }
 
+export async function triggerFullRefresh(top = 20) {
+  const url = `${REFRESH_API}?top=${encodeURIComponent(top)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Refresh endpoint failed (${response.status}) ${text || ""}`.trim()
+    );
+  }
+
+  return response.json();
+}
+
 /**
  * Legacy fetch from static file - kept for compatibility with existing scripts.
  */
-export async function fetchNewsData({ cacheBust = false } = {}) {
-  const url = cacheBust ? `${SUMMARY_PATH}?t=${Date.now()}` : SUMMARY_PATH;
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
+export async function fetchNewsData() {
+  const apiData = await refreshNewsFast();
   return {
-    items: Array.isArray(data.items) ? data.items : [],
-    lastUpdated: data.last_updated || data.lastUpdated || null,
-    raw: data,
+    items: Array.isArray(apiData.items) ? apiData.items : [],
+    lastUpdated: apiData.lastUpdated,
+    raw: apiData,
   };
 }

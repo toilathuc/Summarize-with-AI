@@ -1,4 +1,8 @@
-﻿import { fetchNewsData, refreshNewsFast } from "./services/newsService.js";
+﻿import {
+  fetchNewsData,
+  refreshNewsFast,
+  triggerFullRefresh,
+} from "./services/newsService.js";
 import { applyFilters } from "./filters.js";
 import { renderNews } from "./ui/render.js";
 import { updateStats, updateLastUpdated } from "./ui/stats.js";
@@ -87,7 +91,7 @@ async function bootstrap(elements) {
     console.error("Error loading news data:", error);
     showError(
       elements.newsContainer,
-      "Unable to load news data. Please try again later."
+      "Không thể tải dữ liệu. Vui lòng thử lại sau."
     );
   } finally {
     showLoading(elements.loadingElement, elements.newsContainer, false);
@@ -118,15 +122,21 @@ async function handleRefresh(elements) {
     return;
   }
 
-  showLoadingOverlay(loadingOverlay, true, "Loading new data...");
+  showLoadingOverlay(
+    loadingOverlay,
+    true,
+    "Đang thu thập bài viết mới từ Techmeme..."
+  );
 
   refreshBtn.classList.add("loading");
   refreshBtn.disabled = true;
 
   try {
-    console.log("Starting fast refresh...");
+    console.log("Starting full refresh via backend pipeline...");
+    const refreshResult = await triggerFullRefresh();
+    console.log("Backend refresh finished:", refreshResult);
 
-    // Use fast refresh by default
+    console.log("Fetching latest cached data...");
     const data = await refreshNewsFast();
 
     console.log("Fast refresh completed:", {
@@ -158,19 +168,7 @@ async function handleRefresh(elements) {
     }
 
     const totalItems = state.newsData.length;
-    let successMessage = `Loaded ${totalItems} articles`;
-
-    // Show freshness info
-    if (data.freshness) {
-      successMessage += ` (updated ${data.freshness})`;
-    }
-
-    // Add stale indicator if needed
-    if (data.isStale) {
-      successMessage += ` data is stale`;
-    } else {
-      successMessage += ` ✅`;
-    }
+    let successMessage = `Đã tải ${totalItems} bài viết mới`;
 
     showRefreshSuccess(successMessage);
 
@@ -193,7 +191,7 @@ async function handleRefresh(elements) {
     }
 
     showRefreshError(
-      error.message || "Unable to update data. Please try again later."
+      error.message || "Không thể làm mới dữ liệu. Vui lòng thử lại sau."
     );
 
     // Reset button after 5 seconds on error

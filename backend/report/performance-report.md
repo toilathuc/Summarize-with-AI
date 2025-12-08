@@ -67,7 +67,4 @@ Việc tối ưu hóa trên nền tảng **Kiến Trúc Hexagonal** đã chứng
 2.  **Khả năng mở rộng (Scalability):** Kiến trúc Hexagonal giúp dễ dàng tích hợp các thành phần hạ tầng mới (Redis, Rate Limiter) mà không làm vỡ logic nghiệp vụ cốt lõi.
 3.  **Trải nghiệm người dùng:** Đảm bảo phản hồi **tức thì** (< 10ms) trong mọi điều kiện tải, khắc phục hoàn toàn vấn đề timeout của phiên bản cũ.
 
-**Đánh giá:** Phiên bản mới là một bản nâng cấp toàn diện, sẵn sàng cho môi trường Production tải cao.
-3.  **Trải nghiệm người dùng:** Người dùng nhận được phản hồi **tức thì** (< 10ms) cho mọi thao tác, so với việc phải chờ đợi không thể đoán trước ở phiên bản cũ.
-
-**Đánh giá:** Kiến trúc mới cực kỳ thành công và sẵn sàng để mở rộng (scale).
+**Đánh giá:** Phiên bản mới là một bản nâng cấp toàn diện, sẵn sàng cho môi trường Production tải cao. Kiến trúc mới cực kỳ thành công và sẵn sàng để mở rộng (scale).

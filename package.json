@@ -1,0 +1,28 @@
+{
+  "name": "summarize-with-ai",
+  "version": "1.0.0",
+  "description": "An AI powered news aggregation project that monitors Techmeme, summarises the latest headlines with Google Gemini, and serves the results in a modern web interface.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "report": "node report/k6-report.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toilathuc/Summarize-with-AI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/toilathuc/Summarize-with-AI/issues"
+  },
+  "homepage": "https://github.com/toilathuc/Summarize-with-AI#readme",
+  "devDependencies": {
+    "k6-html-reporter": "^1.0.5"
+  }
+}

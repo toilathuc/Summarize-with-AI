@@ -1,306 +1,163 @@
-🧠 TECH NEWS SUMMARIZER – FULL README (A → Z)
+# 🧠 Summarize with AI
 
-Spring Boot + Redis + SQLite + Firecrawl + Gemini + React (Vite)
+> **Hệ thống tổng hợp tin tức công nghệ tự động bằng AI (Gemini). Kiến trúc Hexagonal tối ưu hiệu năng vượt trội.**
 
-📌 1. Giới thiệu
+![Java](https://img.shields.io/badge/Java-21-orange) 
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green) 
+![React](https://img.shields.io/badge/React-18-blue) 
+![Redis](https://img.shields.io/badge/Redis-Cache_%26_Lock-red) 
+![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple)
 
-Tech News Summarizer là một hệ thống tự động:
+---
 
-Lấy tin tức từ Techmeme RSS.
+## 📖 Giới thiệu
 
-Crawl nội dung thật bằng Firecrawl.
+**Summarize with AI** là ứng dụng full-stack tự động thu thập, phân tích, và tóm tắt tin tức công nghệ từ các nguồn uy tín (ví dụ: Techmeme). Sử dụng **Google Gemini AI** để tạo bản tóm tắt ngắn gọn bằng tiếng Việt.
 
-Tóm tắt bằng Gemini (Google AI).
+✨ **Điểm nổi bật**: Kiến trúc Hexagonal (Ports & Adapters) kết hợp kỹ thuật tối ưu hóa như **Asynchronous Processing**, **Redis Cache**, **Distributed Locking**, **Rate Limiting**; xử lý hàng nghìn request với độ trễ cực thấp (~2ms).
 
-Lưu dữ liệu vào SQLite + Redis.
+---
 
-Cung cấp REST API cho frontend.
+## 🏗️ Kiến trúc hệ thống
 
-Có scheduler tự refresh định kỳ.
+Kiến trúc **Hexagonal** giúp tối ưu hóa cho: Tách biệt business logic và các thành phần external. Linh hoạt mở rộng, dễ kiểm thử.
 
-Có manual refresh kèm rate-limit & Redis lock.
+### **1. Core Domain**
+- Chứa các business rules cốt lõi, không phụ thuộc framework hay database.
+- Giao tiếp với các thành phần ngoài qua các **Port** (interface).
 
-👉 Hệ thống gồm:
+### **2. Ports**
+- **Input Ports (Use Cases):** Định nghĩa hành động (VD: `GetNewsUseCase`, `RefreshNewsUseCase`).
+- **Output Ports:** Interface để domain tương tác với external (VD: `NewsRepository`, `AIClient`, `CachePort`).
 
-Backend (/backend): Spring Boot
+### **3. Adapters**
+- **Primary (Driving):** REST Controllers, Schedulers (kích hoạt UseCase).
+- **Secondary (Driven):** 
+    - **Persistence:** SQLite (storage), Redis (cache).
+    - **External Services:** Firecrawl (crawl), Gemini (summarize).
 
-Frontend (/frontend): React (Vite)
+### ⚡ Tối ưu hiệu năng
 
-Redis: rate-limit, lock, cache
+- **Asynchronous Processing:** Làm mới tin tức xử lý bất đồng bộ → trả về `202 Accepted` ngay, không làm người dùng chờ.
+- **Redis Cache-Aside:** Đọc dữ liệu nhanh, giảm tải DB.
+- **Distributed Lock (Redis):** Đảm bảo chỉ 1 tiến trình refresh chạy, chống race condition.
+- **Rate Limiting:** Giảm nguy cơ quá tải.
 
-SQLite: database local để lưu article & summaries
+---
 
-📌 2. Yêu cầu hệ thống
-Backend
+## 🔄 Luồng hoạt động (Workflow)
 
-Java 17 hoặc 21
+1. User bấm "Refresh" hoặc scheduler kích hoạt.
+2. Fetch RSS: lấy danh sách bài viết mới từ Techmeme.
+3. Filter: lọc bỏ bài đã có trong DB.
+4. Crawl (Firecrawl): lấy nội dung chi tiết cho bài mới.
+5. Summarize (Gemini): tóm tắt Markdown sang gạch đầu dòng bằng tiếng Việt.
+6. Save: lưu vào SQLite, update cache Redis.
+7. Serve: API trả dữ liệu siêu nhanh từ cache (~2ms).
 
-Maven 3.8+
+---
 
-Redis (Linux/macOS dùng redis-server, Windows dùng Memurai)
+## 🛠️ Tech Stack
 
-Frontend
+### **Backend**
+- **Java 21**
+- **Spring Boot 3**
+- **SQLite:** lưu trữ chính
+- **Redis:** cache, lock, rate limit
+- **AI:** Google Gemini Flash
+- **Crawler:** Firecrawl API
+- **Testing:** JUnit 5, Mockito, k6 (performance)
 
-Node.js ≥ 18
+### **Frontend**
+- **React 18 (Vite)**
+- **CSS:** custom, concepts Tailwind
+- **State:** React Hooks
 
-npm ≥ 9
+---
 
-API Keys bắt buộc
+## 🚀 Cài đặt & chạy dự án
 
-Bạn cần 2 API key:
+### **1. Yêu cầu tiên quyết**
+- **Java:** JDK 21+
+- **Node.js:** >= 18
+- **Redis:** cài và chạy (mặc định port 6379)
+- **API Keys:**
+    - `GEMINI_API_KEY` lấy từ Google AI Studio
+    - `FIRECRAWL_API_KEY` lấy từ Firecrawl
 
-Gemini API key – Google AI Studio
+### **2. Cấu hình Backend**
+Chỉnh file `backend/src/main/resources/application.properties` với các API key:
 
-Firecrawl API key – firecrawl.dev
-
-Không commit key vào Git.
-
-📌 3. Clone Project
-git clone <repo>
-cd summarizer-project
-
-📌 4. Cấu hình môi trường
-4.1. Export API keys
-macOS / Linux
-export GEMINI_API_KEY="your-gemini-key"
-export FIRECRAWL_API_KEY="your-firecrawl-key"
-
-Windows PowerShell
-$env:GEMINI_API_KEY="your-gemini-key"
-$env:FIRECRAWL_API_KEY="your-firecrawl-key"
-
-4.2. Start Redis
-Linux/macOS
-redis-server
-
-Windows (Memurai)
-
-Ví dụ : & "C:\Program Files\Memurai\memurai-cli.exe"
-127.0.0.1:6379> ping
-PONG
-127.0.0.1:6379>
-
-Cài Memurai Community
-
-Chạy: Memurai Server (mặc định port 6379)
-
-4.3. Backend config (application.properties)
-
-File ở:
-/backend/src/main/resources/application.properties
-
-server.port=8080
-
-# Redis
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
-redis.key-prefix=summarizer
-
-# Gemini
-gemini.apiKey=${GEMINI_API_KEY:}
-gemini.provider=google
-gemini.model=gemini-flash-latest
-gemini.useApiKeyAsQuery=true
-gemini.maxRetries=2
-gemini.endpoint=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent
+```properties
+# Gemini AI
+gemini.apiKey=YOUR_GEMINI_API_KEY
 
 # Firecrawl
-firecrawl.apiKey=${FIRECRAWL_API_KEY:}
-firecrawl.endpoint=https://api.firecrawl.dev/v1/scrape
-firecrawl.timeout.ms=20000
+firecrawl.apiKey=YOUR_FIRECRAWL_API_KEY
 
-# SQLite
-storage.database-path=./data/feeds/articles.db
-storage.summaries-path=./data/outputs/summaries.db
+# Redis (mặc định localhost:6379)
+spring.redis.host=localhost
+spring.redis.port=6379
+```
 
-# Auto refresh (ms)
-refresh.interval.ms=600000   # 10 phút - đổi ý muốn tắt: đặt -1
-
-# Summarizer
-summarizer.batchSize=8
-summarizer.promptTemplate=You are an assistant... {items_json}
-
-📌 5. Chạy backend
+### **3. Chạy Backend**
+```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
+```
+_Server khởi động tại [`http://localhost:8080`](http://localhost:8080)_
 
-
-Nếu chạy thành công sẽ thấy:
-
-Started Application in X seconds
-Initializing Spring DispatcherServlet 'dispatcherServlet'
-Completed initialization
-
-📌 6. Chạy frontend
+### **4. Chạy Frontend**
+```bash
 cd frontend
 npm install
 npm run dev
-
-
-Truy cập:
-👉 http://localhost:5173
-
-Nếu backend ở port khác, chỉnh file:
-
-/frontend/.env.local
-
-VITE_API_BASE_URL=http://localhost:8080
-
-📌 7. API chính
-7.1. Manual Refresh (gọi tóm tắt mới)
-POST /api/refresh?top=20
-
-Response – nếu job được bắt đầu
-{
-  "status": "started",
-  "running": true,
-  "correlation_id": "uuid",
-  "top": 20
-}
-
-Nếu bị chặn vì job đang chạy
-{
-  "status": "running",
-  "message": "Refresh already in progress",
-  "reason": "manual_blocked_already_running"
-}
-
-Nếu bị rate-limit (spam quá nhanh)
-{
-  "status": "rate_limited",
-  "scope": "refresh"
-}
-
-7.2. Lấy trạng thái job hiện tại
-GET /api/refresh/status
-
-{
-  "running": false,
-  "lastRunAt": "2025-12-03T21:54:11Z",
-  "reason": "success"
-}
-
-7.3. Lấy danh sách summary
-GET /api/summaries
-
-
-Example:
-
-{
-  "total_items": 16,
-  "last_updated": "2025-12-03T12:20:11Z",
-  "items": [
-    {
-      "title": "Apple ra mắt chip AI mới...",
-      "bullets": ["Ý chính 1", "Ý chính 2"],
-      "url": "...",
-      "source": "techmeme"
-    }
-  ]
-}
-
-📌 8. Luồng hoạt động hệ thống
-✔ 1. Scheduled refresh
-
-Chạy theo interval (vd 10 phút)
-
-Nếu đang bận → skip (scheduled_skip_busy)
-
-✔ 2. Manual refresh
-
-Rate-limit: Redis
-
-Redis lock: chống chạy chồng pipeline
-
-Async chạy background
-
-FE poll status hoặc reload summaries
-
-✔ 3. Pipeline refresh
-
-Fetch RSS → diff 15 reused, 1 new
-
-Firecrawl enrich content
-
-Gemini summarize
-
-Lưu vào SQLite + SummaryStore
-
-Unlock redis và kết thúc
-
-📌 9. Thư mục quan trọng trong backend
-
 ```
-backend/src/main/java/com/example/summarizer/
-├── domain/                  # Model thuần Java (Entities, POJOs)
-│   ├── FeedArticle.java
-│   ├── SummaryResult.java
-│   ├── SummaryRequest.java
-│   └── SummaryPayload.java
-│
-├── ports/                   # Interface cho Use Cases (Hexagonal Architecture)
-│   ├── SummarizeUseCase.java
-│   ├── FeedPort.java
-│   ├── ArticleStorePort.java
-│   ├── SummaryStorePort.java
-│   └── ContentEnricherPort.java
-│
-├── service/                 # Business Logic (Triển khai các Use Cases)
-│   ├── SummarizationOrchestrator.java  # Điều phối quy trình tóm tắt
-│   ├── FeedService.java                # Xử lý tin tức đầu vào
-│   ├── RefreshCoordinator.java         # Quản lý quy trình làm mới
-│   ├── StorageService.java             # Logic lưu trữ SQLite
-│   └── NewsCacheService.java           # Logic caching Redis
-│
-├── clients/                 # External Clients (Adapters cho bên thứ 3)
-│   ├── GeminiClient.java               # Adapter cho Google Gemini AI
-│   └── FirecrawlClient.java            # Adapter cho Firecrawl (Scraping)
-│
-├── adapters/                # Các Adapter hạ tầng khác
-│   └── SystemClockAdapter.java
-│
-└── controller/              # REST API (Entry points)
-    ├── SummariesController.java        # API lấy danh sách tóm tắt
-    ├── RefreshController.java          # API kích hoạt làm mới thủ công
-    └── SummarizeController.java
+_Truy cập ứng dụng tại [`http://localhost:5173`](http://localhost:5173)_
+
+---
+
+## 🔌 API Documentation
+
+| Method | Endpoint            | Mô tả                                        |
+|--------|---------------------|----------------------------------------------|
+| GET    | `/api/news`         | Lấy danh sách tin đã tóm tắt (cache)         |
+| POST   | `/api/news/refresh` | Kích hoạt làm mới tin tức (xử lý async)      |
+| GET    | `/api/news/status`  | Kiểm tra trạng thái tiến trình refresh       |
+
+---
+
+## 📊 Hiệu năng (Performance)
+
+Kiểm thử tải bằng **k6** (100 Virtual Users):
+
+| Kịch bản   | Latency (Avg) | RPS | Kết quả                                          |
+|------------|---------------|-----|--------------------------------------------------|
+| Đọc        | ~2.78 ms      |  55 | Phản hồi tức thì nhờ cache Redis                  |
+| Ghi/Refresh| ~2.21 ms      |  55 | Async API, không block request                    |
+| Hỗn hợp    | ~2.47 ms      | 110 | Hệ thống hoàn toàn ổn định                       |
+
+_💡 Phiên bản async mới nhanh hơn **400 lần** so với bản sync cũ khi xử lý nặng._
+
+---
+
+## 📂 Cấu trúc thư mục
+
+```bash
+Summarize-with-AI/
+├── backend/                # Spring Boot app
+│   ├── src/main/java/      # Source code (hexagonal)
+│   ├── report/             # Báo cáo hiệu năng (k6)
+│   └── ...
+├── frontend/               # Ứng dụng React
+│   ├── src/                # React components & hooks
+│   └── ...
+├── java-spring/            # Bản cũ (legacy, tham khảo)
+└── README.md               # Tài liệu dự án
 ```
 
-Đây là kiến trúc kiểu Clean-Architecture + Hexagonal.
+---
 
-📌 10. Troubleshooting
-❗ Lỗi 429 (trong log)
+## 📝 License
 
-Nguồn Firecrawl → bị rate-limit Firecrawl
-Giải pháp: tăng delay, giảm top, nâng plan Firecrawl.
-
-❗ Lỗi 429 từ API refresh
-
-Bạn spam refresh → Redis rate-limit đang hoạt động đúng.
-
-❗ Lỗi Redis connect refused
-
-Redis chưa chạy hoặc sai port.
-
-❗ Gemini trả lỗi 403/401
-
-Sai API key hoặc key không có quyền.
-
-📌 11. Lệnh tóm tắt (TL;DR)
-# Start Redis
-redis-server                # hoặc chạy Memurai
-
-# Backend
-cd backend
-export GEMINI_API_KEY="xxx"
-export FIRECRAWL_API_KEY="yyy"
-mvn spring-boot:run
-
-# Frontend
-cd frontend
-npm install
-npm run dev
-
-# Test API
-curl -X POST http://localhost:8080/api/refresh?top=20
-curl http://localhost:8080/api/refresh/status
-curl http://localhost:8080/api/summaries
+Dự án tạo ra phục vụ mục đích học tập và nghiên cứu, không dùng thương mại.

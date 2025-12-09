@@ -29,10 +29,10 @@ Báo cáo này cung cấp cái nhìn toàn diện về quá trình tái cấu tr
 *   **Hậu quả:** Hệ thống khởi chạy nhiều tiến trình song song cùng xử lý một tác vụ, gây lãng phí tài nguyên và trùng lặp dữ liệu.
 *   **Nguyên nhân:** Thiếu cơ chế khóa phân tán (Distributed Locking).
 
-### 🔴 Vấn đề 3: Rate Limit Hell (Lỗi 429)
-*   **Mô tả:** Gửi hàng loạt request lên Google Gemini/Firecrawl.
-*   **Hậu quả:** API trả về lỗi `429 Too Many Requests`, làm gián đoạn toàn bộ dịch vụ.
-*   **Nguyên nhân:** Thiếu kiểm soát tốc độ (Rate Limiting) và cơ chế Fault Tolerance.
+### 🔴 Vấn đề 3: Sequential Latency Accumulation (Độ trễ tích lũy)
+*   **Mô tả:** Hệ thống xử lý tin tức theo cơ chế tuần tự (Sequential): Crawl bài 1 -> Tóm tắt bài 1 -> Crawl bài 2 -> ...
+*   **Hậu quả:** Tổng thời gian xử lý tăng tuyến tính theo số lượng bài viết. Với 10 bài viết (mỗi bài 3s), người dùng phải chờ 30s, dẫn đến trải nghiệm cực tệ và Timeout.
+*   **Nguyên nhân:** Không tận dụng được khả năng xử lý song song (Parallelism).
 
 ### 🔴 Vấn đề 4: Hiệu năng đọc kém
 *   **Mô tả:** Truy vấn trực tiếp vào SQLite (Disk I/O) cho mọi request.
@@ -71,11 +71,11 @@ Hệ thống sử dụng kết hợp nhiều Design Pattern để giải quyết
 
 ### 🛡️ 4. Circuit Breaker Pattern (Mẫu Cầu Dao)
 *   **Vị trí:** `SummarizationOrchestrator`.
-*   **Mục đích:** Tự động ngắt kết nối khi AI API lỗi liên tục (ví dụ: 5 lần 429), chuyển sang chế độ Fallback để bảo vệ hệ thống khỏi bị treo.
+*   **Mục đích:** Khi chuyển sang xử lý song song (Async), tốc độ gửi request tăng đột biến dễ gây quá tải cho đối tác. Circuit Breaker giúp tự động ngắt kết nối khi AI API lỗi liên tục (ví dụ: 5 lần 429), chuyển sang chế độ Fallback để bảo vệ hệ thống.
 
 ### 🛡️ 5. Retry Pattern with Exponential Backoff
 *   **Vị trí:** `GeminiClient`, `FirecrawlClient`.
-*   **Mục đích:** Tự động thử lại các request thất bại với thời gian chờ tăng dần (2s, 4s, 8s...), tăng khả năng thành công khi mạng chập chờn.
+*   **Mục đích:** Giải quyết vấn đề Rate Limit (429) sinh ra do xử lý song song. Tự động thử lại các request thất bại với thời gian chờ tăng dần (2s, 4s, 8s...), giúp hệ thống tự điều tiết tốc độ ("Turtle Mode").
 
 ### 🛡️ 6. Cache-Aside Pattern (Mẫu Cache Bên Cạnh)
 *   **Vị trí:** `NewsCacheService`.

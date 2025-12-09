@@ -16,7 +16,7 @@ Dự án này minh chứng cho quá trình tiến hóa từ **Kiến trúc Hexag
 
 *   **Tóm tắt thông minh:** Sử dụng Google Gemini 1.5 Flash để phân tích và tóm tắt nội dung.
 *   **Hiệu năng cực cao:** Phản hồi người dùng < 5ms nhờ chiến lược Caching nhiều lớp (L1 Caffeine, L2 Redis).
-*   **Cơ chế chống lỗi (Fault Tolerance):** Tự động Retry, Circuit Breaker khi API bên thứ 3 gặp sự cố.
+*   **Cơ chế chống lỗi (Fault Tolerance):** Tự động Retry, Circuit Breaker để xử lý tình trạng quá tải (Rate Limit) khi chạy song song.
 *   **Xử lý bất đồng bộ:** Tác vụ nặng chạy ngầm, không làm treo giao diện người dùng.
 *   **Rate Limiting thông minh:** Tự động điều chỉnh tốc độ gọi API để tránh lỗi 429 (Too Many Requests).
 

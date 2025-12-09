@@ -93,6 +93,12 @@ flowchart TD
 10. **Singleton Pattern:** Quản lý vòng đời đối tượng Service/Component.
 11. **Builder Pattern:** Xây dựng các object phức tạp (HTTP Request) rõ ràng.
 12. **Repository Pattern:** Trừu tượng hóa lớp truy cập dữ liệu (Data Access Layer).
+13. **Proxy Pattern:** Spring AOP cho Async/Cache/Transaction.
+14. **Future/Promise Pattern:** Xử lý kết quả bất đồng bộ (`CompletableFuture`).
+15. **DTO Pattern:** Tách biệt Domain Model và API Contract.
+16. **Semaphore/Bulkhead:** Giới hạn tài nguyên song song.
+17. **Iterator Pattern:** Duyệt và chia batch dữ liệu.
+18. **Ports & Adapters:** Kiến trúc Hexagonal tổng thể.
 
 ---
 

@@ -50,7 +50,7 @@ public class GeminiClient implements SummarizerPort {
         this.model = model;
         this.maxRetries = Math.max(1, maxRetries);
         this.endpoint = URI.create(endpointUrl);
-        this.provider = provider == null ? "raw" : provider;
+        this.provider = provider == null || provider.isEmpty() ? "google" : provider;
         this.useApiKeyAsQuery = useApiKeyAsQuery;
         this.externalCallCounter = registry == null ? null
                 : registry.counter("summarizer_external_calls_total", "service", "gemini");
@@ -71,10 +71,8 @@ public class GeminiClient implements SummarizerPort {
             return buildMockPayload(prompt);
         }
 
-        String payload =
-                "google".equalsIgnoreCase(provider)
-                        ? mapper.writeValueAsString(buildGooglePayload(prompt))
-                        : mapper.writeValueAsString(new RequestBody(model, prompt));
+        // Default: Google Payload
+        String payload = mapper.writeValueAsString(buildGooglePayload(prompt));
 
         HttpRequest.Builder rb = HttpRequest.newBuilder()
                 .timeout(REQUEST_TIMEOUT)
@@ -84,7 +82,8 @@ public class GeminiClient implements SummarizerPort {
                                 + "AppleWebKit/537.36 (KHTML, like Gecko) "
                                 + "Chrome/125.0 Safari/537.36");
 
-        if ("google".equalsIgnoreCase(provider) && useApiKeyAsQuery) {
+        // Google Auth: Query param (default) or Bearer token
+        if (useApiKeyAsQuery) {
             String sep = endpoint.getQuery() == null ? "?" : "&";
             rb.uri(URI.create(endpoint + sep + "key=" + apiKey));
         } else {
@@ -94,10 +93,10 @@ public class GeminiClient implements SummarizerPort {
 
         HttpRequest request = rb.POST(HttpRequest.BodyPublishers.ofString(payload)).build();
 
-        // correlation id theo request → debug dễ hơn
+        // correlation id theo request → info dễ hơn
         String correlationId = UUID.randomUUID().toString().substring(0, 8);
 
-        logger.debug("Gemini({}) → Prepared request: provider={}, model={}, endpoint={}",
+        logger.info("Gemini({}) → Prepared request: provider={}, model={}, endpoint={}",
                 correlationId, provider, model, endpoint);
 
         long backoff = 5000; // Start with 5s backoff
@@ -107,7 +106,7 @@ public class GeminiClient implements SummarizerPort {
             attempt++;
 
             try {
-                logger.debug("Gemini({}) attempt {}", correlationId, attempt);
+                logger.info("Gemini({}) attempt {}", correlationId, attempt);
 
                 if (attempt > maxRetries) {
                     logger.error("Gemini({}) exceeded max retries ({})", correlationId, maxRetries);
@@ -123,17 +122,15 @@ public class GeminiClient implements SummarizerPort {
                 String body = resp.body();
 
                 if (isSuccess(code)) {
-                    logger.debug("Gemini({}) success ({} chars)", correlationId,
+                    logger.info("Gemini({}) success ({} chars)", correlationId,
                             body == null ? 0 : body.length());
 
-                    if ("google".equalsIgnoreCase(provider)) {
-                        try {
-                            return extractGoogleText(body);
-                        } catch (Exception ex) {
-                            logger.warn("Gemini({}) parse-google failed → using raw", correlationId);
-                        }
+                    try {
+                        return extractGoogleText(body);
+                    } catch (Exception ex) {
+                        logger.warn("Gemini({}) parse-google failed → using raw", correlationId);
+                        return body;
                     }
-                    return body;
                 }
 
                 if (!isRetryable(code)) {
@@ -153,9 +150,9 @@ public class GeminiClient implements SummarizerPort {
                 }
 
             } catch (IOException | InterruptedException ex) {
-
+                // Log full exception info because ex.getMessage() can be null (e.g. NPE, some IOExceptions)
                 logger.warn("Gemini({}) call exception → retry {}/{}: {}",
-                        correlationId, attempt, maxRetries, ex.getMessage());
+                        correlationId, attempt, maxRetries, ex.toString());
             }
 
             Thread.sleep(backoff);
@@ -278,16 +275,6 @@ public class GeminiClient implements SummarizerPort {
         root.set("summaries", summaries);
         
         return mapper.writeValueAsString(root);
-    }
-
-
-    private static class RequestBody {
-        public final String model;
-        public final String prompt;
-        public RequestBody(String model, String prompt) {
-            this.model = model;
-            this.prompt = prompt;
-        }
     }
 
     private void incrementExternalCalls() {

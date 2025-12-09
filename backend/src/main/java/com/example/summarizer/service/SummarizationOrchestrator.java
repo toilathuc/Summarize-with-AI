@@ -26,9 +26,9 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
     // ==========================
     // CONFIG
     // ==========================
-    private static final int MAX_PARALLEL_BATCHES = 1;
+    private static final int MAX_PARALLEL_BATCHES = 2;
     private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(120);
-    private static final int BATCH_RETRY = 1;
+    private static final int BATCH_RETRY = 2;
     private static final int CIRCUIT_THRESHOLD = 3;
     private static final int MAX_CONTENT_CHARS = 500;
 
@@ -94,9 +94,9 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
             semaphore.acquire(); // Limit parallel
             fs.add(pool.submit(() -> {
                 try {
-                    // Rate limit enforcement for Free Tier: 15 RPM => ~4s per request
-                    // Tăng lên 10s để an toàn tuyệt đối với Google Free Tier
-                    Thread.sleep(10000);
+                    // Rate limit enforcement for Free Tier: 5 RPM => 12s per request
+                    // Tăng lên 15s để an toàn tuyệt đối với Google Free Tier (tránh burst)
+                    Thread.sleep(15000);
                     return processBatchWithRetry(batch, myId);
                 } finally {
                     semaphore.release();
@@ -156,7 +156,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         List<SummaryRequest> reqs = batch.stream().map(p -> p.request).toList();
         String prompt = buildPrompt(reqs);
 
-        logger.debug("[Batch {}] running {} items", batchId, batch.size());
+        logger.info("[Batch {}] running {} items", batchId, batch.size());
 
         CompletableFuture<String> cf = CompletableFuture.supplyAsync(() -> {
             try {

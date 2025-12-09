@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +19,9 @@ import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 
-public class FirecrawlClient {
+public class CrawlClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(FirecrawlClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(CrawlClient.class);
 
     private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -58,16 +60,17 @@ public class FirecrawlClient {
     );
 
     private static final Pattern BAD_URL = Pattern.compile("^#|javascript:|^\\s*$");
+    private static final String JINA_PREFIX = "https://r.jina.ai/";
 
-    public FirecrawlClient(String endpointUrl,
-                           String apiKey,
-                           boolean enabled,
-                           boolean onlyMainContent,
-                           Long maxAge,
-                           List<String> formats,
-                           List<String> parsers,
-                           Duration timeout,
-                           MeterRegistry registry) {
+    public CrawlClient(String endpointUrl,
+                       String apiKey,
+                       boolean enabled,
+                       boolean onlyMainContent,
+                       Long maxAge,
+                       List<String> formats,
+                       List<String> parsers,
+                       Duration timeout,
+                       MeterRegistry registry) {
 
         this.endpoint = endpointUrl == null ? null : URI.create(endpointUrl);
         this.apiKey = apiKey;
@@ -97,6 +100,19 @@ public class FirecrawlClient {
     // =====================================================================
 
     public Optional<String> fetchMarkdown(String targetUrl) {
+        // 1. Try Firecrawl first
+        Optional<String> fc = fetchFromFirecrawl(targetUrl);
+        if (fc.isPresent()) return fc;
+    
+        // 2. Fallback to Jina AI (Free)
+        Optional<String> jina = fetchFromJina(targetUrl);
+        if (jina.isPresent()) return jina;
+
+        // 3. Fallback to Jsoup (Local)
+        return fetchFromJsoup(targetUrl);
+    }
+
+    private Optional<String> fetchFromFirecrawl(String targetUrl) {
         if (!enabled) return Optional.empty();
         if (!validateUrl(targetUrl)) return Optional.empty();
         incrementExternalCalls();
@@ -167,6 +183,8 @@ public class FirecrawlClient {
 
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
 
+            logger.info("Firecrawl attempt {}/{} => {}", attempt, MAX_RETRY, url);
+
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             int code = resp.statusCode();
 
@@ -174,7 +192,7 @@ public class FirecrawlClient {
             if (code >= 200 && code < 300) {
                 return parseMarkdown(resp.body())
                         .map(md -> {
-                            logger.info("Firecrawl success ({} chars) <= {}", md.length(), url);
+                            logger.info("Firecrawl success at ({} chars) <= {}", md.length(), url);
                             return md;
                         });
             }
@@ -267,6 +285,68 @@ public class FirecrawlClient {
         parsers.forEach(p::add);
 
         return root;
+    }
+
+    private Optional<String> fetchFromJina(String targetUrl) {
+        logger.info("🔄 Fallback to Jina AI for: {}", targetUrl);
+        try {
+            // Jina doesn't need API key for free tier, just append URL
+            String jinaUrl = JINA_PREFIX + targetUrl;
+
+            HttpRequest request = HttpRequest.newBuilder(URI.create(jinaUrl))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (resp.statusCode() == 200) {
+                String body = resp.body();
+                // Jina raw response is usually the markdown itself if no Accept header, 
+                // but with Accept: application/json it returns JSON.
+                // Let's try to parse as JSON first, if fails treat as raw text.
+                try {
+                    JsonNode root = mapper.readTree(body);
+                    if (root.has("data") && root.get("data").has("content")) {
+                         return Optional.of(root.get("data").get("content").asText());
+                    }
+                } catch (Exception ignored) {}
+                
+                // Fallback: treat body as markdown
+                if (body != null && body.length() > 100) {
+                    logger.info("✅ Jina AI success ({} chars)", body.length());
+                    return Optional.of(body);
+                }
+            }
+            logger.warn("Jina AI failed with status: {}", resp.statusCode());
+        } catch (Exception e) {
+            logger.warn("Jina AI exception: {}", e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> fetchFromJsoup(String targetUrl) {
+        logger.info("🔄 Fallback to Jsoup (Local) for: {}", targetUrl);
+        try {
+            Document doc = Jsoup.connect(targetUrl)
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .timeout(30000)
+                    .get();
+
+            // Simple extraction: title + body text
+            String title = doc.title();
+            String body = doc.body().text(); // extracts visible text
+
+            if (body.length() > 200) {
+                String markdown = "# " + title + "\n\n" + body;
+                logger.info("✅ Jsoup success ({} chars)", markdown.length());
+                return Optional.of(markdown);
+            }
+        } catch (Exception e) {
+            logger.warn("Jsoup failed: {}", e.getMessage());
+        }
+        return Optional.empty();
     }
 
     public boolean isEnabled() {

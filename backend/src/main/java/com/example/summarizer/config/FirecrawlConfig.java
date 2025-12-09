@@ -1,6 +1,6 @@
 package com.example.summarizer.config;
 
-import com.example.summarizer.clients.FirecrawlClient;
+import com.example.summarizer.clients.CrawlClient;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +43,7 @@ public class FirecrawlConfig {
     private int timeoutSeconds;
 
     @Bean
-    public FirecrawlClient firecrawlClient(MeterRegistry registry) {
+    public CrawlClient firecrawlClient(MeterRegistry registry) {
 
         // ❗ Nếu không có API key → tắt luôn Firecrawl để tránh lỗi 500 & spam request
         if (apiKey == null || apiKey.isBlank()) {
@@ -74,7 +74,7 @@ public class FirecrawlConfig {
                 timeoutSeconds
         );
 
-        return new FirecrawlClient(
+        return new CrawlClient(
                 endpoint,
                 apiKey,
                 enabled,

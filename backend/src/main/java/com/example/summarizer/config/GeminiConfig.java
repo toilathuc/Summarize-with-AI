@@ -23,7 +23,7 @@ public class GeminiConfig {
     @Value("${gemini.endpoint:}")
     private String endpoint;
 
-    @Value("${gemini.provider:raw}")
+    @Value("${gemini.provider:google}")
     private String provider;
 
     @Value("${gemini.maxRetries:2}")
@@ -46,9 +46,10 @@ public class GeminiConfig {
     public SummarizerPort geminiClient(MeterRegistry registry) {
 
         String effectiveEndpoint = resolveEndpoint();
+        String safeKey = (apiKey != null) ? apiKey.trim() : "";
 
         return new GeminiClient(
-                apiKey,
+                safeKey,
                 model,
                 maxRetries,
                 effectiveEndpoint,
@@ -63,27 +64,19 @@ public class GeminiConfig {
      * Resolve đúng endpoint theo provider
      */
     private String resolveEndpoint() {
+        String target = endpoint;
 
-        // RAW Provider → dùng endpoint người dùng config
-        if (!"google".equalsIgnoreCase(provider)) {
-            return endpoint == null || endpoint.isBlank()
-                    ? "https://api.example.com/v1/generate"
-                    : endpoint;
+        // Default to Google Gemini endpoint if not specified
+        if (target == null || target.isBlank() || target.contains("example.com")) {
+            target = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
         }
 
-        // GOOGLE Provider
-        if (endpoint == null || endpoint.isBlank() || endpoint.contains("example.com")) {
-            // Default Google Gemini endpoint
-            return "https://generativelanguage.googleapis.com/v1beta/models/"
-                    + model + ":generateContent";
+        // Replace {model} placeholder
+        if (target.contains("{model}")) {
+            return target.replace("{model}", model);
         }
 
-        // Người dùng tự custom endpoint
-        if (endpoint.contains("{model}")) {
-            return endpoint.replace("{model}", model);
-        }
-
-        return endpoint;
+        return target;
     }
 
 

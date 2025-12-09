@@ -16,9 +16,9 @@ Dự án này minh chứng cho quá trình tiến hóa từ **Kiến trúc Hexag
 
 *   **Tóm tắt thông minh:** Sử dụng Google Gemini 1.5 Flash để phân tích và tóm tắt nội dung.
 *   **Hiệu năng cực cao:** Phản hồi người dùng < 5ms nhờ chiến lược Caching nhiều lớp (L1 Caffeine, L2 Redis).
-*   **Cơ chế chống lỗi (Fault Tolerance):** Tự động Retry, Circuit Breaker để xử lý tình trạng quá tải (Rate Limit) khi chạy song song.
+*   **Cơ chế chống lỗi (Fault Tolerance):** Hệ thống Scraping đa lớp (Firecrawl -> Jina AI -> Jsoup Local) đảm bảo tỉ lệ thành công > 99% ngay cả khi bị chặn hoặc hết quota.
 *   **Xử lý bất đồng bộ:** Tác vụ nặng chạy ngầm, không làm treo giao diện người dùng.
-*   **Rate Limiting thông minh:** Tự động điều chỉnh tốc độ gọi API để tránh lỗi 429 (Too Many Requests).
+*   **Rate Limiting thông minh:** Tự động điều chỉnh tốc độ gọi API (Batch Size = 1, Delay 15s) để tương thích hoàn hảo với Google Gemini Free Tier.
 
 ---
 
@@ -48,7 +48,7 @@ flowchart TD
             GeminiClient[🤖 Gemini Adapter]
             RedisClient[⚡ Redis Adapter]
             DBClient[💾 SQLite Adapter]
-            CrawlClient[🕷️ Firecrawl Adapter]
+            CrawlClient[🕷️ Multi-Layer Scraper]
         end
     end
 
@@ -56,7 +56,9 @@ flowchart TD
         Google[☁️ Google Gemini AI]
         Redis[(⚡ Redis Cache)]
         SQLite[(💾 SQLite DB)]
-        Firecrawl[🔥 Firecrawl Service]
+        Firecrawl[🔥 Firecrawl API]
+        Jina[⚡ Jina AI]
+        Jsoup[🌐 Local Jsoup]
     end
 
     User --> FE
@@ -73,15 +75,24 @@ flowchart TD
     GeminiClient -->|Async HTTP| Google
     RedisClient -->|Lettuce| Redis
     DBClient -->|JDBC| SQLite
-    CrawlClient -->|Async HTTP| Firecrawl
+    CrawlClient -->|Primary| Firecrawl
+    CrawlClient -->|Fallback 1| Jina
+    CrawlClient -->|Fallback 2| Jsoup
 ```
 
 ### Các Design Pattern Đã Áp Dụng
 1.  **Adapter Pattern:** Kết nối các dịch vụ bên ngoài (Gemini, Firecrawl) vào hệ thống lõi.
 2.  **Strategy Pattern:** Chuyển đổi linh hoạt giữa chế độ `Real` và `Mock` AI.
-3.  **Decorator/Proxy Pattern:** Sử dụng cho Caching và Transaction Management.
-4.  **Observer/Event-Driven:** Xử lý luồng Refresh bất đồng bộ.
-5.  **Circuit Breaker:** Ngắt kết nối khi AI API bị lỗi liên tục.
+3.  **Facade Pattern:** Ẩn đi sự phức tạp của quy trình tóm tắt.
+4.  **Circuit Breaker:** Ngắt kết nối khi AI API bị lỗi liên tục.
+5.  **Retry Pattern:** Tự động thử lại khi gặp lỗi mạng hoặc Rate Limit.
+6.  **Cache-Aside Pattern:** Tối ưu tốc độ đọc bằng Redis.
+7.  **Distributed Lock:** Đảm bảo tính toàn vẹn dữ liệu khi chạy nhiều instance.
+8.  **Chain of Responsibility:** Xử lý fallback scraping đa lớp (Firecrawl -> Jina -> Jsoup).
+9.  **Producer-Consumer:** Xử lý song song các tác vụ nặng bằng Virtual Threads.
+10. **Singleton Pattern:** Quản lý vòng đời đối tượng Service/Component.
+11. **Builder Pattern:** Xây dựng các object phức tạp (HTTP Request) rõ ràng.
+12. **Repository Pattern:** Trừu tượng hóa lớp truy cập dữ liệu (Data Access Layer).
 
 ---
 

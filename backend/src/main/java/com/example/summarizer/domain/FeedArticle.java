@@ -35,6 +35,8 @@ public class FeedArticle {
     public void setIsSummarized(Boolean isSummarized) { this.isSummarized = isSummarized; }
 
     public SummaryRequest toSummaryRequest() {
-        return new SummaryRequest(title, url, content);
+        // Fallback: Nếu content rỗng (do crawl lỗi), dùng description (từ RSS) để Gemini có cái mà tóm tắt
+        String effectiveContent = (content != null && !content.isBlank()) ? content : description;
+        return new SummaryRequest(title, url, effectiveContent);
     }
 }

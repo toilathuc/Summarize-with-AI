@@ -1,6 +1,6 @@
 package com.example.summarizer.service;
 
-import com.example.summarizer.clients.FirecrawlClient;
+import com.example.summarizer.clients.CrawlClient;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.ports.ContentEnricherPort;
 import com.example.summarizer.utils.ChunkUtils;
@@ -19,7 +19,7 @@ public class ContentCrawlerService implements ContentEnricherPort {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentCrawlerService.class);
 
-    private final FirecrawlClient firecrawlClient;
+    private final CrawlClient firecrawlClient;
     private final int minContentLength;
     private final boolean alwaysRefresh;
 
@@ -30,7 +30,7 @@ public class ContentCrawlerService implements ContentEnricherPort {
     private static final int BATCH_SIZE = 2;
 
     public ContentCrawlerService(
-            FirecrawlClient firecrawlClient,
+            CrawlClient firecrawlClient,
             @Value("${firecrawl.minContentLength:100}") int minContentLength,
             @Value("${firecrawl.alwaysRefresh:false}") boolean alwaysRefresh
     ) {
@@ -60,7 +60,9 @@ public class ContentCrawlerService implements ContentEnricherPort {
         // 2) Chia batch
         List<List<FeedArticle>> batches = ChunkUtils.chunked(targets, BATCH_SIZE);
 
-        for (List<FeedArticle> batch : batches) {
+        for (int i = 0; i < batches.size(); i++) {
+
+            List<FeedArticle> batch = batches.get(i);
 
             List<Callable<Void>> tasks = new ArrayList<>();
 
@@ -86,10 +88,12 @@ public class ContentCrawlerService implements ContentEnricherPort {
             try {
                 // 3) Thực thi từng batch → giảm 429 cực mạnh
                 pool.invokeAll(tasks);
+                logger.info("🔥 Firecrawl enriched batch {}/{} ({} articles)",
+                        i + 1, batches.size(), batch.size());
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                logger.error("Enrich batch interrupted", e);
+                logger.error("Firecrawl enrich interrupted at batch {}/{}: {}", i + 1, batches.size(), e.getMessage());
                 break;
             }
         }

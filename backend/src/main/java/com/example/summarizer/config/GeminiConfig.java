@@ -1,9 +1,9 @@
 package com.example.summarizer.config;
 
 import com.example.summarizer.clients.GeminiClient;
+import com.example.summarizer.ports.CachePort;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
-import com.example.summarizer.service.NewsCacheService;
 import com.example.summarizer.service.SummarizationOrchestrator;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -91,7 +91,7 @@ public class GeminiConfig {
      * Build SummarizationOrchestrator
      */
     @Bean
-    public SummarizeUseCase summarizationOrchestrator(SummarizerPort client, NewsCacheService cache) {
+    public SummarizeUseCase summarizationOrchestrator(SummarizerPort client, CachePort cache) {
         String safeTemplate = promptTemplate;
 
         // đảm bảo template không bị rỗng

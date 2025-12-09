@@ -3,6 +3,7 @@ package com.example.summarizer.service;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.feeds.FeedClient;
 import com.example.summarizer.ports.ArticleStorePort;
+import com.example.summarizer.ports.CachePort;
 import com.example.summarizer.ports.ContentEnricherPort;
 import com.example.summarizer.ports.FeedPort;
 import com.example.summarizer.utils.DiffUtils;
@@ -27,7 +28,7 @@ public class FeedService implements FeedPort {
     private final ArticleStorePort articleRepository;
     private final FeedClient client;
     private final ContentEnricherPort contentEnricher;
-    private final NewsCacheService cacheService;
+    private final CachePort cacheService;
     private final MeterRegistry registry;
 
     // prevent spam-runs (Techmeme RSS rarely updates <60s)
@@ -37,7 +38,7 @@ public class FeedService implements FeedPort {
     public FeedService(ArticleStorePort articleRepository,
                        FeedClient client,
                        ContentEnricherPort contentEnricher,
-                       NewsCacheService cacheService,
+                       CachePort cacheService,
                        MeterRegistry registry) {
         this.articleRepository = articleRepository;
         this.client = client;

@@ -3,6 +3,7 @@ package com.example.summarizer.service;
 import com.example.summarizer.cache.KeyValueCacheClient;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.domain.SummaryResult;
+import com.example.summarizer.ports.CachePort;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -10,12 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.*;
 
 @Service
-public class NewsCacheService {
+public class NewsCacheService implements CachePort {
 
     private static final Logger log = LoggerFactory.getLogger(NewsCacheService.class);
 
@@ -48,6 +50,7 @@ public class NewsCacheService {
 
     /* ====================== SUMMARIES ====================== */
 
+    @Override
     public Optional<Map<String, Object>> getSummaries() {
         try {
             String raw = cache.get(summariesKey());
@@ -64,6 +67,8 @@ public class NewsCacheService {
         }
     }
 
+    @Override
+    @Transactional
     public void putSummaries(Map<String, Object> data) {
         if (data == null || data.isEmpty()) return;
         try {
@@ -74,12 +79,15 @@ public class NewsCacheService {
         }
     }
 
+    @Override
+    @Transactional
     public void evictSummaries() {
         cache.delete(summariesKey());
     }
 
 
     /* ====================== SUMMARY-RESULT =========================== */
+    @Override
     public Optional<SummaryResult> getSummaryResult(String url) {
         try {
             String raw = cache.get(summaryResultKey(url));
@@ -96,6 +104,8 @@ public class NewsCacheService {
         }
     }
 
+    @Override
+    @Transactional
     public void putSummaryResult(SummaryResult result) {
         try {
             String payload = mapper.writeValueAsString(result);
@@ -105,6 +115,8 @@ public class NewsCacheService {
         }
     }
 
+    @Override
+    @Transactional
     public void evictSummaryResult(String url) {
         cache.delete(summaryResultKey(url));
     }
@@ -112,6 +124,7 @@ public class NewsCacheService {
 
     /* ====================== FEED =========================== */
 
+    @Override
     public Optional<List<FeedArticle>> getFeed(Integer limit) {
         try {
             String raw = cache.get(feedKey(limit));
@@ -128,6 +141,8 @@ public class NewsCacheService {
         }
     }
 
+    @Override
+    @Transactional
     public void putFeed(Integer limit, List<FeedArticle> articles) {
         if (articles == null || articles.isEmpty()) return;
         try {
@@ -138,6 +153,8 @@ public class NewsCacheService {
         }
     }
 
+    @Override
+    @Transactional
     public void evictFeed(Integer limit) {
         cache.delete(feedKey(limit));
         // also clear the generic cache to avoid stale data for other callers
@@ -146,10 +163,13 @@ public class NewsCacheService {
 
     /* ====================== SEEN HASHES ==================== */
 
+    @Override
     public Map<String, String> loadSeenHashes() {
         return cache.hGetAll(seenKey());
     }
 
+    @Override
+    @Transactional
     public void saveSeenHashes(Map<String, String> hashes) {
         if (hashes == null || hashes.isEmpty()) {
             cache.delete(seenKey());
@@ -158,6 +178,8 @@ public class NewsCacheService {
         cache.hPutAll(seenKey(), hashes, seenTtl);
     }
 
+    @Override
+    @Transactional
     public void evictSeenHashes() {
         cache.delete(seenKey());
     }

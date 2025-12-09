@@ -1,9 +1,9 @@
 package unit;
 
+import com.example.summarizer.ports.CachePort;
 import com.example.summarizer.ports.FeedPort;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummaryStorePort;
-import com.example.summarizer.service.NewsCacheService;
 import com.example.summarizer.service.RefreshCoordinator;
 import com.example.summarizer.service.lock.LockService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -19,7 +19,7 @@ class RefreshCoordinatorTest {
     private SummaryStorePort store;
     private LockService lock;
     private FeedPort feed;
-    private NewsCacheService cacheService;
+    private CachePort cacheService;
     private MeterRegistry registry;
 
     private RefreshCoordinator coordinator;
@@ -30,7 +30,7 @@ class RefreshCoordinatorTest {
         store = mock(SummaryStorePort.class);
         lock = mock(LockService.class);
         feed = mock(FeedPort.class);
-        cacheService = mock(NewsCacheService.class);
+        cacheService = mock(CachePort.class);
         registry = mock(MeterRegistry.class);
 
         when(registry.timer(anyString())).thenReturn(mock(io.micrometer.core.instrument.Timer.class));

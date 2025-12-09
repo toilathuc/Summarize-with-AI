@@ -26,8 +26,8 @@ public class ContentCrawlerService implements ContentEnricherPort {
     // ⚡ Virtual threads → scalable, nhẹ hơn fixed-thread
     private final ExecutorService pool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
 
-    // Mỗi batch chỉ 4 bài để tránh 429
-    private static final int BATCH_SIZE = 4;
+    // Mỗi batch chỉ 2 bài để tránh 429
+    private static final int BATCH_SIZE = 2;
 
     public ContentCrawlerService(
             FirecrawlClient firecrawlClient,

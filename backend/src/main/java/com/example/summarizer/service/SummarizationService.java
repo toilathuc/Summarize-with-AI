@@ -1,6 +1,7 @@
 package com.example.summarizer.service;
 
 import com.example.summarizer.domain.SummaryPayload;
+import com.example.summarizer.ports.CachePort;
 import com.example.summarizer.ports.LoadSummariesQuery;
 import com.example.summarizer.ports.SummaryStorePort;
 import com.example.summarizer.utils.PayloadToMapUtils;
@@ -9,7 +10,7 @@ import java.io.IOException;
 import java.util.*;
 
 public record SummarizationService(SummaryStorePort summaryStore,
-                                   NewsCacheService cache) implements LoadSummariesQuery {
+                                   CachePort cache) implements LoadSummariesQuery {
 
     @Override
     public Map<String, Object> getSummaries() throws IOException {

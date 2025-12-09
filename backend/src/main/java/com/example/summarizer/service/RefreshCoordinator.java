@@ -3,6 +3,7 @@ package com.example.summarizer.service;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.domain.SummaryPayload;
 import com.example.summarizer.domain.SummaryResult;
+import com.example.summarizer.ports.CachePort;
 import com.example.summarizer.ports.FeedPort;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummaryStorePort;
@@ -43,7 +44,7 @@ public class RefreshCoordinator {
     private final SummaryStorePort summaryStore;
     private final LockService lockService;
     private final FeedPort feedPort;
-    private final NewsCacheService cacheService;
+    private final CachePort cacheService;
     private final Duration lockTtl;
     private final Timer refreshTimer;
     private final AtomicInteger refreshRunningGauge;
@@ -64,7 +65,7 @@ public class RefreshCoordinator {
             SummaryStorePort summaryStore,
             LockService lockService,
             FeedPort feedPort,
-            NewsCacheService cacheService,
+            CachePort cacheService,
             MeterRegistry registry,
             @Value("${refresh.lock.ttl.seconds:30}") long lockTtlSeconds
     ) {

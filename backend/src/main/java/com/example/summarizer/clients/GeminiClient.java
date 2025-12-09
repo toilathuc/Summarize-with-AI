@@ -1,6 +1,7 @@
 package com.example.summarizer.clients;
 
 import com.example.summarizer.ports.SummarizerPort;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.*;
@@ -64,6 +65,12 @@ public class GeminiClient implements SummarizerPort {
     @Override
     public String generate(String prompt) throws IOException, InterruptedException {
 
+        // MOCK MODE: Trả về kết quả giả lập ngay lập tức
+        if ("mock".equalsIgnoreCase(provider)) {
+            logger.info("Gemini (MOCK) → Returning fake summary");
+            return buildMockPayload(prompt);
+        }
+
         String payload =
                 "google".equalsIgnoreCase(provider)
                         ? mapper.writeValueAsString(buildGooglePayload(prompt))
@@ -93,7 +100,7 @@ public class GeminiClient implements SummarizerPort {
         logger.debug("Gemini({}) → Prepared request: provider={}, model={}, endpoint={}",
                 correlationId, provider, model, endpoint);
 
-        long backoff = 500;
+        long backoff = 5000; // Start with 5s backoff
         int attempt = 0;
 
         while (attempt <= maxRetries) {
@@ -136,6 +143,15 @@ public class GeminiClient implements SummarizerPort {
 
                 logger.warn("Gemini({}) retryable {} → retry {} of {}", correlationId, code, attempt, maxRetries);
 
+                // Nếu gặp 429 (Rate Limit), ngủ hẳn 60s để hồi quota
+                if (code == 429) {
+                    logger.warn("Gemini({}) hit 429 → Sleeping 60s to cool down...", correlationId);
+                    Thread.sleep(60000);
+                    // Reset backoff để không tăng thêm nữa
+                    backoff = 5000; 
+                    continue;
+                }
+
             } catch (IOException | InterruptedException ex) {
 
                 logger.warn("Gemini({}) call exception → retry {}/{}: {}",
@@ -143,7 +159,7 @@ public class GeminiClient implements SummarizerPort {
             }
 
             Thread.sleep(backoff);
-            backoff = Math.min(backoff * 2, 5000); // max 5s
+            backoff = Math.min(backoff * 2, 30000); // max 30s
         }
         throw new IOException("Gemini failed after " + maxRetries + " retries");
     }
@@ -217,6 +233,51 @@ public class GeminiClient implements SummarizerPort {
         }
 
         return body;
+    }
+
+    /* Mock provider ------------------------------------------------ */
+    private String buildMockPayload(String prompt) throws JsonProcessingException {
+        // Đếm số lượng bài trong prompt để trả về đúng số lượng mock item
+        int itemCount = 1;
+        try {
+            // Tìm chuỗi "Input items: " trong prompt để parse JSON
+            int idx = prompt.indexOf("Input items: ");
+            if (idx >= 0) {
+                String jsonPart = prompt.substring(idx + 13).trim();
+                // Cắt bớt phần thừa nếu có (ví dụ "\nReturn ONLY...")
+                int endIdx = jsonPart.indexOf("\nReturn ONLY");
+                if (endIdx > 0) jsonPart = jsonPart.substring(0, endIdx);
+                
+                JsonNode items = mapper.readTree(jsonPart);
+                if (items.isArray()) {
+                    itemCount = items.size();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Mock parse failed, defaulting to 1 item: {}", e.getMessage());
+        }
+
+        // Build mock response dynamic theo số lượng item
+        ArrayNode summaries = mapper.createArrayNode();
+        for (int i = 0; i < itemCount; i++) {
+            ObjectNode s = mapper.createObjectNode();
+            s.put("title", "Mock Summary Title " + (i + 1));
+            s.put("url", "http://example.com/mock-" + (i + 1));
+            
+            ArrayNode bullets = s.putArray("bullets");
+            bullets.add("Đây là tóm tắt giả lập bài số " + (i + 1));
+            bullets.add("Hệ thống đang chạy chế độ Mock.");
+            bullets.add("Google API đang bị rate limit.");
+            
+            s.put("why_it_matters", "Giúp kiểm thử luồng hoạt động mà không cần gọi API thật.");
+            s.put("type", "news");
+            summaries.add(s);
+        }
+        
+        ObjectNode root = mapper.createObjectNode();
+        root.set("summaries", summaries);
+        
+        return mapper.writeValueAsString(root);
     }
 
 

@@ -3,6 +3,7 @@ package com.example.summarizer.service;
 import com.example.summarizer.domain.FeedArticle;
 import com.example.summarizer.domain.SummaryRequest;
 import com.example.summarizer.domain.SummaryResult;
+import com.example.summarizer.ports.CachePort;
 import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
 import com.example.summarizer.utils.ChunkUtils;
@@ -26,13 +27,13 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
     // CONFIG
     // ==========================
     private static final int MAX_PARALLEL_BATCHES = 1;
-    private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(45);
+    private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(120);
     private static final int BATCH_RETRY = 1;
     private static final int CIRCUIT_THRESHOLD = 3;
     private static final int MAX_CONTENT_CHARS = 500;
 
     private final SummarizerPort client;
-    private final NewsCacheService cache;
+    private final CachePort cache;
     private final String promptTemplate;
     private final int batchSize;
     private final Semaphore semaphore = new Semaphore(MAX_PARALLEL_BATCHES);
@@ -41,7 +42,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
     private final AtomicInteger failures = new AtomicInteger(0);
     private volatile boolean circuitOpen = false;
 
-    public SummarizationOrchestrator(SummarizerPort client, NewsCacheService cache, String promptTemplate, int batchSize) {
+    public SummarizationOrchestrator(SummarizerPort client, CachePort cache, String promptTemplate, int batchSize) {
         this.client = client;
         this.cache = cache;
         this.promptTemplate = promptTemplate;
@@ -93,7 +94,9 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
             semaphore.acquire(); // Limit parallel
             fs.add(pool.submit(() -> {
                 try {
-                    Thread.sleep(5000);
+                    // Rate limit enforcement for Free Tier: 15 RPM => ~4s per request
+                    // Tăng lên 10s để an toàn tuyệt đối với Google Free Tier
+                    Thread.sleep(10000);
                     return processBatchWithRetry(batch, myId);
                 } finally {
                     semaphore.release();

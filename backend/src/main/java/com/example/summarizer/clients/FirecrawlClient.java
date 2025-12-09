@@ -45,10 +45,9 @@ public class FirecrawlClient {
     private static final long DOMAIN_COOLDOWN_MS = 60_000; // 60s
     private static final Map<String, Long> DOMAIN_COOLDOWN = new HashMap<>();
 
-    // Paywall domains skip
+    // Paywall domains skip (Hard paywalls only)
     private static final Set<String> PAYWALL_DOMAINS = Set.of(
-            "nytimes.com", "wsj.com", "ft.com", "bloomberg.com",
-            "economist.com", "latimes.com", "theatlantic.com"
+            "wsj.com", "ft.com", "bloomberg.com", "economist.com"
     );
 
     private static final List<String> USER_AGENTS = List.of(
@@ -102,11 +101,12 @@ public class FirecrawlClient {
         if (!validateUrl(targetUrl)) return Optional.empty();
         incrementExternalCalls();
 
-        // Skip paywall domains
+        // Paywall skip
         if (isPaywallDomain(targetUrl)) {
             logger.warn("Skipping paywall domain → {}", targetUrl);
             return Optional.empty();
         }
+        
 
         String domain = extractDomain(targetUrl);
         long now = System.currentTimeMillis();
@@ -174,7 +174,7 @@ public class FirecrawlClient {
             if (code >= 200 && code < 300) {
                 return parseMarkdown(resp.body())
                         .map(md -> {
-                            logger.debug("Firecrawl success ({} chars) <= {}", md.length(), url);
+                            logger.info("Firecrawl success ({} chars) <= {}", md.length(), url);
                             return md;
                         });
             }

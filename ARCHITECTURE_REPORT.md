@@ -51,6 +51,60 @@ Phiên bản 2.0 tiếp tục kế thừa nền tảng **Hexagonal Architecture*
 3.  **Adapters Layer:** Thực thi giao tiếp (`GeminiClient`, `NewsCacheService`, `ArticleRepository`).
 4.  **Application Layer:** Điều phối luồng (`SummarizationOrchestrator`, `RefreshCoordinator`).
 
+### 3.2. Sơ đồ Kiến trúc Tổng quan (System Architecture Diagram)
+
+Dưới đây là sơ đồ chi tiết thể hiện luồng dữ liệu và sự tương tác giữa các thành phần trong hệ thống theo chuẩn Hexagonal:
+
+```mermaid
+graph TD
+    subgraph "Client Side"
+        User[👤 User]
+        FE[⚛️ React Frontend]
+    end
+
+    subgraph "Server Side (Hexagonal Architecture)"
+        subgraph "Primary Adapters (Driving)"
+            API[🌐 REST Controller]
+        end
+
+        subgraph "Application Core (Hexagon)"
+            Ports_In[Input Ports<br/>(Use Cases)]
+            Domain[🧠 Domain Logic<br/>(Orchestrator, Coordinator)]
+            Ports_Out[Output Ports<br/>(Interfaces)]
+        end
+
+        subgraph "Secondary Adapters (Driven)"
+            GeminiClient[🤖 Gemini Adapter]
+            RedisClient[⚡ Redis Adapter]
+            DBClient[💾 SQLite Adapter]
+            CrawlClient[🕷️ Firecrawl Adapter]
+        end
+    end
+
+    subgraph "External Infrastructure"
+        Google[☁️ Google Gemini AI]
+        Redis[(⚡ Redis Cache)]
+        SQLite[(💾 SQLite DB)]
+        Firecrawl[🔥 Firecrawl Service]
+    end
+
+    User --> FE
+    FE -->|JSON/HTTP| API
+    API -->|Calls| Ports_In
+    Ports_In -->|Implemented by| Domain
+    Domain -->|Uses| Ports_Out
+    
+    Ports_Out <|..| GeminiClient
+    Ports_Out <|..| RedisClient
+    Ports_Out <|..| DBClient
+    Ports_Out <|..| CrawlClient
+
+    GeminiClient -->|Async HTTP| Google
+    RedisClient -->|Lettuce| Redis
+    DBClient -->|JDBC| SQLite
+    CrawlClient -->|Async HTTP| Firecrawl
+```
+
 ---
 
 ## 4. Các Design Pattern Đã Áp Dụng (Applied Design Patterns)

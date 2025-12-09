@@ -28,24 +28,52 @@ Cả hai phiên bản (Legacy & Optimized) đều tuân thủ **Hexagonal Archit
 
 ```mermaid
 graph TD
-    User[User / Frontend] -->|REST API| Controller[Web Adapter]
-    Controller -->|UseCase Interface| Core[Domain Logic / Orchestrator]
-    
-    subgraph "Core Domain (Hexagon)"
-        Core
-        Model[Entities: Article, Summary]
-        Ports[Ports Interfaces]
+    subgraph "Client Side"
+        User[👤 User]
+        FE[⚛️ React Frontend]
     end
+
+    subgraph "Server Side (Hexagonal Architecture)"
+        subgraph "Primary Adapters (Driving)"
+            API[🌐 REST Controller]
+        end
+
+        subgraph "Application Core (Hexagon)"
+            Ports_In[Input Ports<br/>(Use Cases)]
+            Domain[🧠 Domain Logic<br/>(Orchestrator, Coordinator)]
+            Ports_Out[Output Ports<br/>(Interfaces)]
+        end
+
+        subgraph "Secondary Adapters (Driven)"
+            GeminiClient[🤖 Gemini Adapter]
+            RedisClient[⚡ Redis Adapter]
+            DBClient[💾 SQLite Adapter]
+            CrawlClient[🕷️ Firecrawl Adapter]
+        end
+    end
+
+    subgraph "External Infrastructure"
+        Google[☁️ Google Gemini AI]
+        Redis[(⚡ Redis Cache)]
+        SQLite[(💾 SQLite DB)]
+        Firecrawl[🔥 Firecrawl Service]
+    end
+
+    User --> FE
+    FE -->|JSON/HTTP| API
+    API -->|Calls| Ports_In
+    Ports_In -->|Implemented by| Domain
+    Domain -->|Uses| Ports_Out
     
-    Core -->|Output Port| RedisAdapter[Redis Adapter]
-    Core -->|Output Port| SQLiteAdapter[SQLite Adapter]
-    Core -->|Output Port| GeminiAdapter[Gemini AI Adapter]
-    Core -->|Output Port| FirecrawlAdapter[Firecrawl Adapter]
-    
-    RedisAdapter --> Redis[(Redis Cache)]
-    SQLiteAdapter --> SQLite[(SQLite DB)]
-    GeminiAdapter --> GoogleCloud[Google Gemini API]
-    FirecrawlAdapter --> Firecrawl[Firecrawl Service]
+    Ports_Out <|..| GeminiClient
+    Ports_Out <|..| RedisClient
+    Ports_Out <|..| DBClient
+    Ports_Out <|..| CrawlClient
+
+    GeminiClient -->|Async HTTP| Google
+    RedisClient -->|Lettuce| Redis
+    DBClient -->|JDBC| SQLite
+    CrawlClient -->|Async HTTP| Firecrawl
 ```
 
 ### Các Design Pattern Đã Áp Dụng
@@ -99,20 +127,25 @@ So sánh giữa phiên bản cũ (Sync) và phiên bản mới (Async + Redis):
 
 ```
 Summarize-with-AI/
-├── backend/
+├── backend/                 # Spring Boot Application
 │   ├── src/main/java/com/example/summarizer/
+│   │   ├── adapters/        # Implementation of Ports (Gemini, Firecrawl)
+│   │   ├── config/          # App Configuration (Beans, Security)
+│   │   ├── controller/      # REST API Controllers
 │   │   ├── domain/          # Core Business Logic (Entities)
 │   │   ├── ports/           # Interfaces (Input/Output Ports)
-│   │   ├── service/         # UseCase Implementations (Orchestrator)
-│   │   ├── adapters/        # Implementations of Ports
-│   │   ├── clients/         # External API Clients (Gemini, Firecrawl)
-│   │   ├── config/          # Spring Configuration (Redis, Async)
-│   │   └── controller/      # REST API Endpoints
-│   └── report/              # Báo cáo hiệu năng (k6 results)
-├── frontend/
-│   ├── src/components/      # React Components
-│   └── src/services/        # API Integration
-└── ARCHITECTURE_REPORT.md   # Báo cáo chi tiết hệ thống
+│   │   ├── service/         # Application Services (Orchestrator)
+│   │   └── Application.java # Entry Point
+│   └── pom.xml              # Maven Dependencies
+├── frontend/                # React + Vite Application
+│   ├── src/
+│   │   ├── components/      # UI Components
+│   │   ├── hooks/           # Custom React Hooks
+│   │   ├── services/        # API Clients
+│   │   └── App.jsx          # Main Component
+│   └── vite.config.js       # Vite Configuration
+├── ARCHITECTURE_REPORT.md   # Detailed System Report
+└── README.md                # Project Documentation
 ```
 
 ---
@@ -139,9 +172,9 @@ _Truy cập ứng dụng tại [`http://localhost:5173`](http://localhost:5173)_
 
 | Method | Endpoint            | Mô tả                                        |
 |--------|---------------------|----------------------------------------------|
-| GET    | `/api/news`         | Lấy danh sách tin đã tóm tắt (cache)         |
-| POST   | `/api/news/refresh` | Kích hoạt làm mới tin tức (xử lý async)      |
-| GET    | `/api/news/status`  | Kiểm tra trạng thái tiến trình refresh       |
+| GET    | `/api/summaries`    | Lấy danh sách tin đã tóm tắt (cache)         |
+| POST   | `/api/refresh`      | Kích hoạt làm mới tin tức (xử lý async)      |
+| GET    | `/api/refresh/status`| Kiểm tra trạng thái tiến trình refresh       |
 
 ---
 
@@ -161,18 +194,7 @@ _💡 Phiên bản async mới nhanh hơn **400 lần** so với bản sync cũ 
 
 ## 📂 Cấu trúc thư mục
 
-```bash
-Summarize-with-AI/
-├── backend/                # Spring Boot app
-│   ├── src/main/java/      # Source code (hexagonal)
-│   ├── report/             # Báo cáo hiệu năng (k6)
-│   └── ...
-├── frontend/               # Ứng dụng React
-│   ├── src/                # React components & hooks
-│   └── ...
-├── java-spring/            # Bản cũ (legacy, tham khảo)
-└── README.md               # Tài liệu dự án
-```
+*(Xem chi tiết ở phần trên)*
 
 ---
 

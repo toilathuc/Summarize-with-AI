@@ -8,7 +8,7 @@
 
 **Summarize-with-AI** là giải pháp giúp người dùng cập nhật tin tức công nghệ nhanh chóng mà không cần đọc hết các bài báo dài. Hệ thống tự động thu thập tin tức từ Techmeme, sử dụng **Firecrawl** để lấy nội dung chi tiết và **Google Gemini AI** để tóm tắt thành các gạch đầu dòng súc tích bằng tiếng Việt.
 
-Dự án này là minh chứng cho việc áp dụng **Kiến trúc Hexagonal (Ports & Adapters)** kết hợp với các kỹ thuật tối ưu hiệu năng cao cấp như **Virtual Threads**, **Distributed Locking**, và **Async Processing**.
+Dự án này minh chứng cho quá trình tiến hóa từ **Kiến trúc Hexagonal cơ bản (Sync)** sang **Kiến trúc Hexagonal tối ưu hóa (Async/Reactive)**, kết hợp với các kỹ thuật hiệu năng cao cấp như **Virtual Threads**, **Distributed Locking**, và **Async Processing**.
 
 ---
 
@@ -24,7 +24,7 @@ Dự án này là minh chứng cho việc áp dụng **Kiến trúc Hexagonal (P
 
 ## 🏗️ Kiến Trúc Hệ Thống
 
-Hệ thống tuân thủ nghiêm ngặt **Hexagonal Architecture**:
+Cả hai phiên bản (Legacy & Optimized) đều tuân thủ **Hexagonal Architecture**, tuy nhiên phiên bản mới đã thay thế các Adapter đồng bộ bằng các Adapter bất đồng bộ hiệu năng cao:
 
 ```mermaid
 graph TD

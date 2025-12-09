@@ -80,24 +80,19 @@ flowchart TD
     CrawlClient -->|Fallback 2| Jsoup
 ```
 
-### Các Design Pattern Đã Áp Dụng
-1.  **Adapter Pattern:** Kết nối các dịch vụ bên ngoài (Gemini, Firecrawl) vào hệ thống lõi.
-2.  **Strategy Pattern:** Chuyển đổi linh hoạt giữa chế độ `Real` và `Mock` AI.
-3.  **Facade Pattern:** Ẩn đi sự phức tạp của quy trình tóm tắt.
-4.  **Circuit Breaker:** Ngắt kết nối khi AI API bị lỗi liên tục.
-5.  **Retry Pattern:** Tự động thử lại khi gặp lỗi mạng hoặc Rate Limit.
-6.  **Cache-Aside Pattern:** Tối ưu tốc độ đọc bằng Redis.
-7.  **Distributed Lock:** Đảm bảo tính toàn vẹn dữ liệu khi chạy nhiều instance.
-8.  **Chain of Responsibility:** Xử lý fallback scraping đa lớp (Firecrawl -> Jina -> Jsoup).
-9.  **Producer-Consumer:** Xử lý song song các tác vụ nặng bằng Virtual Threads.
-10. **Singleton Pattern:** Quản lý vòng đời đối tượng Service/Component.
-11. **Builder Pattern:** Xây dựng các object phức tạp (HTTP Request) rõ ràng.
-12. **Repository Pattern:** Trừu tượng hóa lớp truy cập dữ liệu (Data Access Layer).
-13. **Proxy Pattern:** Spring AOP cho Async/Cache/Transaction.
-14. **Future/Promise Pattern:** Xử lý kết quả bất đồng bộ (`CompletableFuture`).
-15. **DTO Pattern:** Tách biệt Domain Model và API Contract.
-16. **Semaphore/Bulkhead:** Giới hạn tài nguyên song song.
-17. **Iterator Pattern:** Duyệt và chia batch dữ liệu.
+### Các Design Pattern Cốt Lõi (Core Design Patterns)
+Phiên bản 2.0 tập trung vào 10 Pattern nâng cao giúp giải quyết triệt để các vấn đề hiệu năng và độ tin cậy:
+
+1.  **Asynchronous Producer-Consumer:** Xử lý song song hàng loạt tin tức bằng Virtual Threads.
+2.  **Bulkhead & Rate Limiting:** Cô lập lỗi và kiểm soát tốc độ gọi API (5 RPM).
+3.  **Resilience Patterns (Circuit Breaker & Retry):** Tự động ngắt mạch và thử lại khi gặp lỗi mạng/API.
+4.  **Chain of Responsibility:** Chiến lược scraping đa lớp (Firecrawl -> Jina -> Jsoup).
+5.  **Cache-Aside:** Tối ưu tốc độ đọc bằng Redis In-Memory.
+6.  **Distributed Locking:** Đảm bảo tính nhất quán dữ liệu khi chạy nhiều instance.
+7.  **Strategy Pattern:** Chuyển đổi linh hoạt giữa các nhà cung cấp AI (Real/Mock).
+8.  **Facade Pattern:** Đơn giản hóa quy trình nghiệp vụ phức tạp.
+9.  **Future/Promise Pattern:** Xử lý kết quả bất đồng bộ không chặn luồng chính.
+10. **Proxy Pattern (AOP):** Tự động hóa các tác vụ phụ trợ (Async, Cache, Log).
 18. **Ports & Adapters:** Kiến trúc Hexagonal tổng thể.
 
 ---

@@ -1,104 +1,122 @@
-# 🧠 Summarize with AI
+# Summarize-with-AI 🤖📰
 
-> **Hệ thống tổng hợp tin tức công nghệ tự động bằng AI (Gemini). Kiến trúc Hexagonal tối ưu hiệu năng vượt trội.**
+> **Hệ thống tóm tắt tin tức tự động sử dụng AI (Gemini), Kiến trúc Hexagonal và Redis High-Performance.**
 
-![Java](https://img.shields.io/badge/Java-21-orange) 
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green) 
-![React](https://img.shields.io/badge/React-18-blue) 
-![Redis](https://img.shields.io/badge/Redis-Cache_%26_Lock-red) 
-![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple)
+![Java](https://img.shields.io/badge/Java-21-orange) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-green) ![Redis](https://img.shields.io/badge/Redis-Cache-red) ![React](https://img.shields.io/badge/React-Vite-blue)
 
----
+## 📖 Giới Thiệu
 
-## 📖 Giới thiệu
+**Summarize-with-AI** là giải pháp giúp người dùng cập nhật tin tức công nghệ nhanh chóng mà không cần đọc hết các bài báo dài. Hệ thống tự động thu thập tin tức từ Techmeme, sử dụng **Firecrawl** để lấy nội dung chi tiết và **Google Gemini AI** để tóm tắt thành các gạch đầu dòng súc tích bằng tiếng Việt.
 
-**Summarize with AI** là ứng dụng full-stack tự động thu thập, phân tích, và tóm tắt tin tức công nghệ từ các nguồn uy tín (ví dụ: Techmeme). Sử dụng **Google Gemini AI** để tạo bản tóm tắt ngắn gọn bằng tiếng Việt.
-
-✨ **Điểm nổi bật**: Kiến trúc Hexagonal (Ports & Adapters) kết hợp kỹ thuật tối ưu hóa như **Asynchronous Processing**, **Redis Cache**, **Distributed Locking**, **Rate Limiting**; xử lý hàng nghìn request với độ trễ cực thấp (~2ms).
+Dự án này là minh chứng cho việc áp dụng **Kiến trúc Hexagonal (Ports & Adapters)** kết hợp với các kỹ thuật tối ưu hiệu năng cao cấp như **Virtual Threads**, **Distributed Locking**, và **Async Processing**.
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## 🚀 Tính Năng Nổi Bật
 
-Kiến trúc **Hexagonal** giúp tối ưu hóa cho: Tách biệt business logic và các thành phần external. Linh hoạt mở rộng, dễ kiểm thử.
-
-### **1. Core Domain**
-- Chứa các business rules cốt lõi, không phụ thuộc framework hay database.
-- Giao tiếp với các thành phần ngoài qua các **Port** (interface).
-
-### **2. Ports**
-- **Input Ports (Use Cases):** Định nghĩa hành động (VD: `GetNewsUseCase`, `RefreshNewsUseCase`).
-- **Output Ports:** Interface để domain tương tác với external (VD: `NewsRepository`, `AIClient`, `CachePort`).
-
-### **3. Adapters**
-- **Primary (Driving):** REST Controllers, Schedulers (kích hoạt UseCase).
-- **Secondary (Driven):** 
-    - **Persistence:** SQLite (storage), Redis (cache).
-    - **External Services:** Firecrawl (crawl), Gemini (summarize).
-
-### ⚡ Tối ưu hiệu năng
-
-- **Asynchronous Processing:** Làm mới tin tức xử lý bất đồng bộ → trả về `202 Accepted` ngay, không làm người dùng chờ.
-- **Redis Cache-Aside:** Đọc dữ liệu nhanh, giảm tải DB.
-- **Distributed Lock (Redis):** Đảm bảo chỉ 1 tiến trình refresh chạy, chống race condition.
-- **Rate Limiting:** Giảm nguy cơ quá tải.
+*   **Tóm tắt thông minh:** Sử dụng Google Gemini 1.5 Flash để phân tích và tóm tắt nội dung.
+*   **Hiệu năng cực cao:** Phản hồi người dùng < 5ms nhờ chiến lược Caching nhiều lớp (L1 Caffeine, L2 Redis).
+*   **Cơ chế chống lỗi (Fault Tolerance):** Tự động Retry, Circuit Breaker khi API bên thứ 3 gặp sự cố.
+*   **Xử lý bất đồng bộ:** Tác vụ nặng chạy ngầm, không làm treo giao diện người dùng.
+*   **Rate Limiting thông minh:** Tự động điều chỉnh tốc độ gọi API để tránh lỗi 429 (Too Many Requests).
 
 ---
 
-## 🔄 Luồng hoạt động (Workflow)
+## 🏗️ Kiến Trúc Hệ Thống
 
-1. User bấm "Refresh" hoặc scheduler kích hoạt.
-2. Fetch RSS: lấy danh sách bài viết mới từ Techmeme.
-3. Filter: lọc bỏ bài đã có trong DB.
-4. Crawl (Firecrawl): lấy nội dung chi tiết cho bài mới.
-5. Summarize (Gemini): tóm tắt Markdown sang gạch đầu dòng bằng tiếng Việt.
-6. Save: lưu vào SQLite, update cache Redis.
-7. Serve: API trả dữ liệu siêu nhanh từ cache (~2ms).
+Hệ thống tuân thủ nghiêm ngặt **Hexagonal Architecture**:
 
----
-
-## 🛠️ Tech Stack
-
-### **Backend**
-- **Java 21**
-- **Spring Boot 3**
-- **SQLite:** lưu trữ chính
-- **Redis:** cache, lock, rate limit
-- **AI:** Google Gemini Flash
-- **Crawler:** Firecrawl API
-- **Testing:** JUnit 5, Mockito, k6 (performance)
-
-### **Frontend**
-- **React 18 (Vite)**
-- **CSS:** custom, concepts Tailwind
-- **State:** React Hooks
-
----
-
-## 🚀 Cài đặt & chạy dự án
-
-### **1. Yêu cầu tiên quyết**
-- **Java:** JDK 21+
-- **Node.js:** >= 18
-- **Redis:** cài và chạy (mặc định port 6379)
-- **API Keys:**
-    - `GEMINI_API_KEY` lấy từ Google AI Studio
-    - `FIRECRAWL_API_KEY` lấy từ Firecrawl
-
-### **2. Cấu hình Backend**
-Chỉnh file `backend/src/main/resources/application.properties` với các API key:
-
-```properties
-# Gemini AI
-gemini.apiKey=YOUR_GEMINI_API_KEY
-
-# Firecrawl
-firecrawl.apiKey=YOUR_FIRECRAWL_API_KEY
-
-# Redis (mặc định localhost:6379)
-spring.redis.host=localhost
-spring.redis.port=6379
+```mermaid
+graph TD
+    User[User / Frontend] -->|REST API| Controller[Web Adapter]
+    Controller -->|UseCase Interface| Core[Domain Logic / Orchestrator]
+    
+    subgraph "Core Domain (Hexagon)"
+        Core
+        Model[Entities: Article, Summary]
+        Ports[Ports Interfaces]
+    end
+    
+    Core -->|Output Port| RedisAdapter[Redis Adapter]
+    Core -->|Output Port| SQLiteAdapter[SQLite Adapter]
+    Core -->|Output Port| GeminiAdapter[Gemini AI Adapter]
+    Core -->|Output Port| FirecrawlAdapter[Firecrawl Adapter]
+    
+    RedisAdapter --> Redis[(Redis Cache)]
+    SQLiteAdapter --> SQLite[(SQLite DB)]
+    GeminiAdapter --> GoogleCloud[Google Gemini API]
+    FirecrawlAdapter --> Firecrawl[Firecrawl Service]
 ```
+
+### Các Design Pattern Đã Áp Dụng
+1.  **Adapter Pattern:** Kết nối các dịch vụ bên ngoài (Gemini, Firecrawl) vào hệ thống lõi.
+2.  **Strategy Pattern:** Chuyển đổi linh hoạt giữa chế độ `Real` và `Mock` AI.
+3.  **Decorator/Proxy Pattern:** Sử dụng cho Caching và Transaction Management.
+4.  **Observer/Event-Driven:** Xử lý luồng Refresh bất đồng bộ.
+5.  **Circuit Breaker:** Ngắt kết nối khi AI API bị lỗi liên tục.
+
+---
+
+## 🛠️ Cài Đặt & Chạy Dự Án
+
+### Yêu Cầu
+*   Java 21+
+*   Node.js 18+
+*   Redis (Chạy local hoặc Docker)
+*   API Key: Google Gemini & Firecrawl
+
+### 1. Backend (Spring Boot)
+```bash
+cd backend
+# Cấu hình API Key trong application.properties hoặc biến môi trường
+./mvnw spring-boot:run
+```
+
+### 2. Frontend (React + Vite)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 📊 Báo Cáo Hiệu Năng
+
+So sánh giữa phiên bản cũ (Sync) và phiên bản mới (Async + Redis):
+
+| Metric | Legacy (Sync) | Optimized (Async) | Cải thiện |
+| :--- | :--- | :--- | :--- |
+| **Avg Latency (Write)** | 932 ms | **2.2 ms** | ⚡ **421x** |
+| **Max Latency** | 31,000 ms | **9 ms** | ✅ **No Timeout** |
+| **Throughput** | 18 req/s | **54 req/s** | 🔥 **3x** |
+
+> *Xem chi tiết tại file `ARCHITECTURE_REPORT.md`*
+
+---
+
+## 📂 Cấu Trúc Dự Án
+
+```
+Summarize-with-AI/
+├── backend/
+│   ├── src/main/java/com/example/summarizer/
+│   │   ├── domain/          # Core Business Logic (Entities)
+│   │   ├── ports/           # Interfaces (Input/Output Ports)
+│   │   ├── service/         # UseCase Implementations (Orchestrator)
+│   │   ├── adapters/        # Implementations of Ports
+│   │   ├── clients/         # External API Clients (Gemini, Firecrawl)
+│   │   ├── config/          # Spring Configuration (Redis, Async)
+│   │   └── controller/      # REST API Endpoints
+│   └── report/              # Báo cáo hiệu năng (k6 results)
+├── frontend/
+│   ├── src/components/      # React Components
+│   └── src/services/        # API Integration
+└── ARCHITECTURE_REPORT.md   # Báo cáo chi tiết hệ thống
+```
+
+---
+**Author:** Toilathuc & GitHub Copilot
 
 ### **3. Chạy Backend**
 ```bash

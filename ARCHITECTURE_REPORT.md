@@ -68,9 +68,9 @@ graph TD
         end
 
         subgraph "Application Core (Hexagon)"
-            Ports_In[Input Ports<br/>(Use Cases)]
-            Domain[🧠 Domain Logic<br/>(Orchestrator, Coordinator)]
-            Ports_Out[Output Ports<br/>(Interfaces)]
+            Ports_In["Input Ports<br/>(Use Cases)"]
+            Domain["🧠 Domain Logic<br/>(Orchestrator, Coordinator)"]
+            Ports_Out["Output Ports<br/>(Interfaces)"]
         end
 
         subgraph "Secondary Adapters (Driven)"

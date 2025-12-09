@@ -34,17 +34,17 @@ flowchart TD
     end
 
     subgraph ServerSide [Server Side - Hexagonal Architecture]
-        subgraph Primary [Primary Adapters - Driving]
+        subgraph Primary ["Primary Adapters<br/>(Driving)"]
             API[🌐 REST Controller]
         end
 
-        subgraph Core [Application Core - Hexagon]
+        subgraph Core ["Application Core<br/>(Hexagon)"]
             Ports_In["Input Ports<br/>(Use Cases)"]
             Domain["🧠 Domain Logic<br/>(Orchestrator)"]
             Ports_Out["Output Ports<br/>(Interfaces)"]
         end
 
-        subgraph Secondary [Secondary Adapters - Driven]
+        subgraph Secondary ["Secondary Adapters<br/>(Driven)"]
             GeminiClient[🤖 Gemini Adapter]
             RedisClient[⚡ Redis Adapter]
             DBClient[💾 SQLite Adapter]

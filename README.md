@@ -65,10 +65,10 @@ graph TD
     Ports_In -->|Implemented by| Domain
     Domain -->|Uses| Ports_Out
     
-    Ports_Out <|..| GeminiClient
-    Ports_Out <|..| RedisClient
-    Ports_Out <|..| DBClient
-    Ports_Out <|..| CrawlClient
+    Ports_Out -.->|Implements| GeminiClient
+    Ports_Out -.->|Implements| RedisClient
+    Ports_Out -.->|Implements| DBClient
+    Ports_Out -.->|Implements| CrawlClient
 
     GeminiClient -->|Async HTTP| Google
     RedisClient -->|Lettuce| Redis
@@ -130,18 +130,24 @@ Summarize-with-AI/
 ├── backend/                 # Spring Boot Application
 │   ├── src/main/java/com/example/summarizer/
 │   │   ├── adapters/        # Implementation of Ports (Gemini, Firecrawl)
-│   │   ├── config/          # App Configuration (Beans, Security)
+│   │   ├── cache/           # Caching Logic (Redis, Caffeine)
+│   │   ├── config/          # App Configuration (Beans, Async, Security)
 │   │   ├── controller/      # REST API Controllers
 │   │   ├── domain/          # Core Business Logic (Entities)
 │   │   ├── ports/           # Interfaces (Input/Output Ports)
+│   │   ├── repository/      # Data Access Layer (SQLite)
 │   │   ├── service/         # Application Services (Orchestrator)
+│   │   ├── utils/           # Utility Classes (Date, String, Parsers)
 │   │   └── Application.java # Entry Point
 │   └── pom.xml              # Maven Dependencies
 ├── frontend/                # React + Vite Application
 │   ├── src/
-│   │   ├── components/      # UI Components
-│   │   ├── hooks/           # Custom React Hooks
-│   │   ├── services/        # API Clients
+│   │   ├── assets/          # Static Assets (Images, Icons)
+│   │   ├── components/      # UI Components (NewsCard, StatsBar)
+│   │   ├── hooks/           # Custom React Hooks (useNotification)
+│   │   ├── services/        # API Clients (Axios)
+│   │   ├── styles/          # CSS & Styling
+│   │   ├── utils/           # Helper Functions (Formatters)
 │   │   └── App.jsx          # Main Component
 │   └── vite.config.js       # Vite Configuration
 ├── ARCHITECTURE_REPORT.md   # Detailed System Report

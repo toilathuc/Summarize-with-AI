@@ -94,10 +94,10 @@ graph TD
     Ports_In -->|Implemented by| Domain
     Domain -->|Uses| Ports_Out
     
-    Ports_Out <|..| GeminiClient
-    Ports_Out <|..| RedisClient
-    Ports_Out <|..| DBClient
-    Ports_Out <|..| CrawlClient
+    Ports_Out -.->|Implements| GeminiClient
+    Ports_Out -.->|Implements| RedisClient
+    Ports_Out -.->|Implements| DBClient
+    Ports_Out -.->|Implements| CrawlClient
 
     GeminiClient -->|Async HTTP| Google
     RedisClient -->|Lettuce| Redis

@@ -56,24 +56,24 @@ Phiên bản 2.0 tiếp tục kế thừa nền tảng **Hexagonal Architecture*
 Dưới đây là sơ đồ chi tiết thể hiện luồng dữ liệu và sự tương tác giữa các thành phần trong hệ thống theo chuẩn Hexagonal:
 
 ```mermaid
-graph TD
-    subgraph "Client Side"
+flowchart TD
+    subgraph ClientSide [Client Side]
         User[👤 User]
         FE[⚛️ React Frontend]
     end
 
-    subgraph "Server Side (Hexagonal Architecture)"
-        subgraph "Primary Adapters (Driving)"
+    subgraph ServerSide [Server Side - Hexagonal Architecture]
+        subgraph Primary [Primary Adapters - Driving]
             API[🌐 REST Controller]
         end
 
-        subgraph "Application Core (Hexagon)"
+        subgraph Core [Application Core - Hexagon]
             Ports_In["Input Ports<br/>(Use Cases)"]
-            Domain["🧠 Domain Logic<br/>(Orchestrator, Coordinator)"]
+            Domain["🧠 Domain Logic<br/>(Orchestrator)"]
             Ports_Out["Output Ports<br/>(Interfaces)"]
         end
 
-        subgraph "Secondary Adapters (Driven)"
+        subgraph Secondary [Secondary Adapters - Driven]
             GeminiClient[🤖 Gemini Adapter]
             RedisClient[⚡ Redis Adapter]
             DBClient[💾 SQLite Adapter]
@@ -81,7 +81,7 @@ graph TD
         end
     end
 
-    subgraph "External Infrastructure"
+    subgraph Infrastructure [External Infrastructure]
         Google[☁️ Google Gemini AI]
         Redis[(⚡ Redis Cache)]
         SQLite[(💾 SQLite DB)]
@@ -103,6 +103,64 @@ graph TD
     RedisClient -->|Lettuce| Redis
     DBClient -->|JDBC| SQLite
     CrawlClient -->|Async HTTP| Firecrawl
+```
+
+### 3.3. Quy Trình Hoạt Động (System Workflow)
+
+Sơ đồ tuần tự (Sequence Diagram) dưới đây mô tả chi tiết luồng xử lý khi người dùng kích hoạt tính năng "Làm mới tin tức" (Refresh):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant API as 🌐 API Controller
+    participant Coord as 🧠 Coordinator
+    participant Redis as ⚡ Redis
+    participant Orch as 🎼 Orchestrator
+    participant AI as 🤖 Gemini Client
+    participant DB as 💾 SQLite
+
+    User->>API: POST /api/refresh
+    API->>Coord: tryStartManual()
+    
+    activate Coord
+    Coord->>Redis: SETNX refresh-job (Lock)
+    alt Locked (Already Running)
+        Redis-->>Coord: false
+        Coord-->>API: 202 Accepted
+        API-->>User: "Refresh in progress"
+    else Acquired
+        Redis-->>Coord: true
+        Coord-->>API: 200 OK (Async Started)
+        API-->>User: "Refresh Started"
+        
+        rect rgb(240, 248, 255)
+            note right of Coord: Async Process (Virtual Threads)
+            Coord->>Coord: fetchFeed() (Techmeme)
+            Coord->>Orch: summarize(articles)
+            
+            activate Orch
+            loop For each Article
+                Orch->>Redis: GET summary:{url}
+                alt Cache Hit
+                    Redis-->>Orch: SummaryResult
+                else Cache Miss
+                    Orch->>AI: generateSummary(content)
+                    activate AI
+                    note right of AI: Rate Limit: Sleep 10s
+                    AI-->>Orch: JSON Summary
+                    deactivate AI
+                end
+            end
+            Orch-->>Coord: List<SummaryResult>
+            deactivate Orch
+
+            Coord->>DB: save(summaries)
+            Coord->>Redis: SET summaries (Update Cache)
+            Coord->>Redis: DEL refresh-job (Unlock)
+        end
+    end
+    deactivate Coord
 ```
 
 ---

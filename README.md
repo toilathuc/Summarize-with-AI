@@ -27,24 +27,24 @@ Dự án này minh chứng cho quá trình tiến hóa từ **Kiến trúc Hexag
 Cả hai phiên bản (Legacy & Optimized) đều tuân thủ **Hexagonal Architecture**, tuy nhiên phiên bản mới đã thay thế các Adapter đồng bộ bằng các Adapter bất đồng bộ hiệu năng cao:
 
 ```mermaid
-graph TD
-    subgraph "Client Side"
+flowchart TD
+    subgraph ClientSide [Client Side]
         User[👤 User]
         FE[⚛️ React Frontend]
     end
 
-    subgraph "Server Side (Hexagonal Architecture)"
-        subgraph "Primary Adapters (Driving)"
+    subgraph ServerSide [Server Side - Hexagonal Architecture]
+        subgraph Primary [Primary Adapters - Driving]
             API[🌐 REST Controller]
         end
 
-        subgraph "Application Core (Hexagon)"
+        subgraph Core [Application Core - Hexagon]
             Ports_In["Input Ports<br/>(Use Cases)"]
-            Domain["🧠 Domain Logic<br/>(Orchestrator, Coordinator)"]
+            Domain["🧠 Domain Logic<br/>(Orchestrator)"]
             Ports_Out["Output Ports<br/>(Interfaces)"]
         end
 
-        subgraph "Secondary Adapters (Driven)"
+        subgraph Secondary [Secondary Adapters - Driven]
             GeminiClient[🤖 Gemini Adapter]
             RedisClient[⚡ Redis Adapter]
             DBClient[💾 SQLite Adapter]
@@ -52,7 +52,7 @@ graph TD
         end
     end
 
-    subgraph "External Infrastructure"
+    subgraph Infrastructure [External Infrastructure]
         Google[☁️ Google Gemini AI]
         Redis[(⚡ Redis Cache)]
         SQLite[(💾 SQLite DB)]

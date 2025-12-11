@@ -37,19 +37,7 @@ public class HexagonalArchitectureProofTest {
                 throw new RuntimeException("AI Service Down");
             }
             // Giả lập AI trả về JSON đúng chuẩn
-            return """
-                {
-                    "summaries": [
-                        {
-                            "title": "Fake Title",
-                            "url": "http://test.com",
-                            "bullets": ["Fake summary bullet 1", "Fake summary bullet 2"],
-                            "why_it_matters": "Fake reason",
-                            "type": "news"
-                        }
-                    ]
-                }
-                """;
+            return "{\"summaries\":[{\"title\":\"Fake Title\",\"url\":\"http://test.com\",\"bullets\":[\"Fake summary bullet 1\",\"Fake summary bullet 2\"],\"why_it_matters\":\"Fake reason\",\"type\":\"news\"}]}";
         }
     }
 

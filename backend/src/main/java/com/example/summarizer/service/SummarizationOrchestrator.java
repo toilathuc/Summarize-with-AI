@@ -167,15 +167,20 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         }, pool);
 
         String raw = cf.orTimeout(BATCH_TIMEOUT.getSeconds(), TimeUnit.SECONDS).join();
+        // System.out.println("DEBUG: Raw AI response: " + raw);
 
         String jsonStr = JsonUtils.extractJsonBlock(raw);
+        // System.out.println("DEBUG: Extracted JSON: " + jsonStr);
+        
         JsonNode payload = mapper.readTree(jsonStr);
 
         List<SummaryResult> parsed = parseSummaries(payload);
+        // System.out.println("DEBUG: Parsed size: " + parsed.size());
 
         if (parsed.size() != batch.size()) {
             logger.warn("[Batch {}] Parsed {} but expected {} → fallback",
                     batchId, parsed.size(), batch.size());
+            // System.out.println("DEBUG: Fallback triggered due to size mismatch");
             parsed = fallbackSummaries(reqs);
         }
 

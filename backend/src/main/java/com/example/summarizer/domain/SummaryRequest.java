@@ -21,9 +21,9 @@ public class SummaryRequest {
 
     public Map<String, Object> toPromptMap() {
         return Map.of(
-                "title", title,
-                "url", url,
-                "content", content
+                "title", title != null ? title : "",
+                "url", url != null ? url : "",
+                "content", content != null ? content : ""
         );
     }
 }

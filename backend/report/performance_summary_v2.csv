@@ -1,4 +1,5 @@
 Test Scenario,Total Requests,RPS,Avg Latency (ms),P95 Latency (ms),Max Latency (ms),Error Rate (%),Max VUs
-Summaries Stress (Read),2230,54.80,2.78,5.35,21.70,0.00,100
-Refresh Stress (Write),2230,54.79,2.21,4.12,9.02,95.52,100
-Mix Test (Combined),2230,54.80,2.47,4.64,21.51,44.35,100
+Summaries Stress (Read),2230,54.78,2.68,5.26,14.36,0.00,100
+Refresh Stress (Write),2230,54.79,2.25,4.46,87.13,95.52,100
+Mix Test (Combined),2231,54.85,2.38,4.40,20.17,45.32,100
+Frontend Load (Web),2229,54.78,3.11,7.96,41.46,0.00,100

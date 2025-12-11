@@ -6,6 +6,7 @@
     "refresh-stress": "k6 run src/test/java/performance/refresh-stress.js",
     "summaries-stress": "k6 run src/test/java/performance/summaries-stress.js",
     "mix-test": "k6 run src/test/java/performance/mix-test.js",
+    "frontend-load": "k6 run src/test/java/performance/frontend-load.js",
     "report": "node report/k6-report.js"
   }
 }

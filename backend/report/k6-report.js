@@ -4,7 +4,8 @@ const fs = require('fs');
 const jsonFiles = [
   'report/raw/refresh-stress.json',
   'report/raw/summaries-stress.json',
-   'report/raw/mix-test.json',
+  'report/raw/mix-test.json',
+  'report/raw/frontend-load.json',
 ];
 
 jsonFiles.forEach((file) => {

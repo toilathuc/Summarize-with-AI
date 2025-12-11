@@ -5,6 +5,7 @@
     "summaries-stress": "k6 run test/performance/summaries-stress.js",
     "refresh-stress": "k6 run test/performance/refresh-stress.js",
     "mix-test": "k6 run test/performance/mix-test.js",
+    "frontend-load": "k6 run test/performance/frontend-load.js",
     "report": "node report/k6-report.js"
   },
   "devDependencies": {

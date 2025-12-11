@@ -12,7 +12,7 @@ if (!fs.existsSync(htmlDir)){
 }
 
 // List of test files to process
-const tests = ['summaries-stress', 'refresh-stress', 'mix-test'];
+const tests = ['summaries-stress', 'refresh-stress', 'mix-test', 'frontend-load'];
 
 tests.forEach(testName => {
     const jsonPath = path.join(rawDir, `${testName}.json`);

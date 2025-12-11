@@ -22,6 +22,20 @@ Dự án này minh chứng cho quá trình tiến hóa từ **Kiến trúc Hexag
 
 ---
 
+## 📊 Hiệu Năng (Performance Benchmarks)
+
+So sánh giữa phiên bản cũ (Sync) và phiên bản mới (Async + Redis) cho thấy sự cải thiện vượt bậc về độ trễ và khả năng chịu tải:
+
+| Kịch Bản Test | Metric | Phiên Bản Cũ (Legacy) | Phiên Bản Mới (v2.0) | Cải Thiện |
+| :--- | :--- | :--- | :--- | :--- |
+| **Refresh (Write)** | Avg Latency | ~1,200 ms | **~2.25 ms** | **532x** 🚀 |
+| **Mix Test (R/W)** | Avg Latency | ~850 ms | **~2.38 ms** | **357x** 🚀 |
+| **Max Latency** | Worst Case | ~15,000 ms (Timeout) | **~87 ms** | **Ổn định tuyệt đối** |
+
+> *Xem chi tiết báo cáo tại [backend/report/performance-report.md](backend/report/performance-report.md)*
+
+---
+
 ## 🏗️ Kiến Trúc Hệ Thống
 
 Cả hai phiên bản (Legacy & Optimized) đều tuân thủ **Hexagonal Architecture**, tuy nhiên phiên bản mới đã thay thế các Adapter đồng bộ bằng các Adapter bất đồng bộ hiệu năng cao:

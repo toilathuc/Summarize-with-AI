@@ -2,8 +2,8 @@
 
 **Dự án:** Summarize-with-AI  
 **Phiên bản:** 2.0 (Optimized Hexagonal)  
-**Ngày báo cáo:** 09/12/2025  
-**Tác giả:** Toilathuc & GitHub Copilot
+**Ngày báo cáo:** 13/12/2025  
+**Tác giả:** Nhóm 3 (Phan Đình Minh, Lê Huy Thực, Tô Quang Thắng)
 
 ---
 
@@ -17,47 +17,62 @@ Báo cáo này cung cấp cái nhìn toàn diện về quá trình tái cấu tr
 
 ## 2. Phân Tích Hệ Thống Cũ (Legacy System Analysis)
 
-Ở phiên bản đầu tiên (Legacy), mặc dù dự án đã được thiết kế theo **Kiến trúc Hexagonal**, việc triển khai thực tế vẫn còn nhiều hạn chế do phụ thuộc vào mô hình xử lý đồng bộ (Synchronous Blocking). Các thành phần (Adapters) được kết nối đúng chuẩn nhưng logic xử lý bên trong chưa tối ưu, dẫn đến các vấn đề nghiêm trọng sau:
+Ở phiên bản đầu tiên (Legacy), mặc dù dự án đã được thiết kế theo **Kiến trúc Hexagonal**, việc triển khai thực tế vẫn còn nhiều hạn chế do phụ thuộc vào mô hình xử lý đồng bộ (Synchronous Blocking). Dưới đây là 11 vấn đề nghiêm trọng đã được nhận diện và giải quyết:
 
-### 🔴 Vấn đề 1: Blocking I/O & Timeout (Nghẽn cổ chai)
-*   **Mô tả:** Quy trình làm mới (Refresh) chạy trên luồng chính (Main Thread).
-*   **Hậu quả:** Khi người dùng bấm "Refresh", trình duyệt quay vòng chờ đợi. Nếu quá trình crawl + AI mất quá 30 giây, kết nối bị ngắt (Timeout 504).
-*   **Nguyên nhân:** Thiếu cơ chế xử lý bất đồng bộ (Async).
+### 🔴 Vấn đề 1: Blocking I/O & Timeout
+*   **Mô tả:** Quy trình làm mới chạy trên luồng chính.
+*   **Hậu quả:** Gây treo trình duyệt và timeout (504) nếu xử lý quá 30s.
+*   **Giải pháp:** **Asynchronous Producer-Consumer** (Virtual Threads).
 
-### 🔴 Vấn đề 2: Race Conditions (Xung đột dữ liệu)
-*   **Mô tả:** Nhiều người dùng cùng bấm "Refresh" cùng lúc.
-*   **Hậu quả:** Hệ thống khởi chạy nhiều tiến trình song song cùng xử lý một tác vụ, gây lãng phí tài nguyên và trùng lặp dữ liệu.
-*   **Nguyên nhân:** Thiếu cơ chế khóa phân tán (Distributed Locking).
+### 🔴 Vấn đề 2: Race Conditions
+*   **Mô tả:** Nhiều người dùng bấm "Refresh" cùng lúc.
+*   **Hậu quả:** Khởi chạy nhiều tiến trình trùng lặp, lãng phí tài nguyên.
+*   **Giải pháp:** **Distributed Locking** (Redis).
 
-### 🔴 Vấn đề 3: Sequential Latency Accumulation (Độ trễ tích lũy)
-*   **Mô tả:** Hệ thống xử lý tin tức theo cơ chế tuần tự (Sequential): Crawl bài 1 -> Tóm tắt bài 1 -> Crawl bài 2 -> ...
-*   **Hậu quả:** Tổng thời gian xử lý tăng tuyến tính theo số lượng bài viết. Với 10 bài viết (mỗi bài 3s), người dùng phải chờ 30s, dẫn đến trải nghiệm cực tệ và Timeout.
-*   **Nguyên nhân:** Không tận dụng được khả năng xử lý song song (Parallelism).
+### 🔴 Vấn đề 3: Cascading Failures
+*   **Mô tả:** Lỗi từ API bên thứ 3 (Google/Firecrawl) làm treo các luồng xử lý.
+*   **Hậu quả:** Kéo theo sập toàn bộ hệ thống.
+*   **Giải pháp:** **Bulkhead & Rate Limiting (Internal)**.
 
-### 🔴 Vấn đề 4: Hiệu năng đọc kém (Database Bottleneck)
-*   **Mô tả:** Truy vấn trực tiếp vào SQLite (Disk I/O) cho mọi request đọc danh sách tin tức.
-*   **Hậu quả:** Tốc độ phản hồi chậm khi tải cao, gây áp lực lớn lên ổ cứng.
-*   **Nguyên nhân:** Thiếu lớp Caching (In-Memory).
+### 🔴 Vấn đề 4: Fragile Scraping
+*   **Mô tả:** Phụ thuộc vào một nguồn lấy tin duy nhất (Firecrawl).
+*   **Hậu quả:** Dễ bị chặn hoặc lỗi, làm gián đoạn dịch vụ.
+*   **Giải pháp:** **Chain of Responsibility** (Firecrawl -> Jina -> Jsoup).
 
-### 🔴 Vấn đề 5: Resource Exhaustion (Cạn kiệt tài nguyên)
-*   **Mô tả:** Trong mô hình cũ, mỗi request chiếm dụng một Thread của hệ điều hành (OS Thread) trong suốt thời gian chờ I/O (chờ AI trả lời).
-*   **Hậu quả:** Khi có nhiều request đồng thời, Thread Pool nhanh chóng bị đầy, dẫn đến việc từ chối phục vụ (Denial of Service) các request mới dù CPU vẫn rảnh rỗi.
-*   **Nguyên nhân:** Sử dụng mô hình Thread-per-Request truyền thống thay vì Virtual Threads.
+### 🔴 Vấn đề 5: Hiệu năng đọc kém
+*   **Mô tả:** Truy vấn trực tiếp vào Database (Disk I/O) cho mọi request.
+*   **Hậu quả:** Tốc độ phản hồi chậm (~500ms), gây tải lớn cho DB.
+*   **Giải pháp:** **Cache-Aside** (Redis).
 
-### 🔴 Vấn đề 6: Cascading Failures (Lỗi dây chuyền)
-*   **Mô tả:** Khi API bên thứ 3 (Google/Firecrawl) gặp sự cố hoặc phản hồi chậm.
-*   **Hậu quả:** Các luồng xử lý bị treo vô thời hạn, kéo theo toàn bộ hệ thống bị tê liệt, ảnh hưởng đến cả các tính năng không liên quan.
-*   **Nguyên nhân:** Thiếu cơ chế ngắt mạch (Circuit Breaker) và cô lập lỗi (Bulkhead).
+### 🔴 Vấn đề 6: Lỗi mạng tạm thời
+*   **Mô tả:** Các lỗi mạng thoáng qua (transient errors).
+*   **Hậu quả:** Làm hỏng cả quy trình xử lý batch.
+*   **Giải pháp:** **Resilience Patterns** (Retry & Circuit Breaker).
 
-### 🔴 Vấn đề 7: Fragile Scraping (Dễ vỡ)
-*   **Mô tả:** Phụ thuộc duy nhất vào một phương pháp lấy tin (ví dụ: chỉ dùng Jsoup hoặc chỉ dùng API).
-*   **Hậu quả:** Khi trang nguồn thay đổi cấu trúc hoặc chặn Bot, tính năng tóm tắt "chết" hoàn toàn.
-*   **Nguyên nhân:** Thiếu chiến lược dự phòng đa lớp (Multi-layer Fallback Strategy).
+### 🔴 Vấn đề 7: Khó kiểm thử & Phụ thuộc cứng
+*   **Mô tả:** Code gắn chặt với implementation cụ thể của AI Provider.
+*   **Hậu quả:** Khó mock để test, khó thay đổi provider.
+*   **Giải pháp:** **Strategy Pattern**.
 
-### 🔴 Vấn đề 8: Rate Limit Violations (Vi phạm giới hạn API)
-*   **Mô tả:** Gửi request ồ ạt không kiểm soát tới Google Gemini Free Tier.
-*   **Hậu quả:** Thường xuyên gặp lỗi 429 (Too Many Requests), bị Google chặn IP tạm thời.
-*   **Nguyên nhân:** Thiếu cơ chế điều tiết tốc độ (Rate Limiting/Throttling) chủ động.
+### 🔴 Vấn đề 8: Logic phức tạp & Khó bảo trì
+*   **Mô tả:** Logic nghiệp vụ bị phân tán ở nhiều nơi.
+*   **Hậu quả:** Code rối rắm, khó bảo trì và mở rộng.
+*   **Giải pháp:** **Facade Pattern**.
+
+### 🔴 Vấn đề 9: Blocking Thread
+*   **Mô tả:** Thread chính bị block khi chờ kết quả từ các tác vụ I/O lâu.
+*   **Hậu quả:** Lãng phí tài nguyên CPU, giảm throughput.
+*   **Giải pháp:** **Future/Promise Pattern**.
+
+### 🔴 Vấn đề 10: Code lẫn lộn (Cross-cutting Concerns)
+*   **Mô tả:** Code log, transaction, caching bị trộn lẫn vào code nghiệp vụ.
+*   **Hậu quả:** Code thiếu trong sáng (Clean Code), khó đọc.
+*   **Giải pháp:** **Proxy Pattern (AOP)**.
+
+### 🔴 Vấn đề 11: API Abuse & DDoS
+*   **Mô tả:** Hệ thống dễ bị tấn công hoặc spam request từ một IP cụ thể.
+*   **Hậu quả:** Nguy cơ bị tấn công từ chối dịch vụ (DoS).
+*   **Giải pháp:** **Rate Limiting (API Gateway)**.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "summarize-with-ai",
   "version": "1.0.0",
-  "description": "An AI powered news aggregation project that monitors Techmeme, summarises the latest headlines with Google Gemini, and serves the results in a modern web interface.",
+  "description": "An AI-powered news aggregation project that monitors Techmeme, crawls source articles with Firecrawl, and summarizes them with Groq.",
   "main": "index.js",
   "directories": {
     "doc": "docs",

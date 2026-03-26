@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Configuration
-public class FirecrawlConfig {
+public class CrawlConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(FirecrawlConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(CrawlConfig.class);
 
     @Value("${firecrawl.endpoint:https://api.firecrawl.dev/v2/scrape}")
     private String endpoint;
@@ -43,26 +43,17 @@ public class FirecrawlConfig {
     private int timeoutSeconds;
 
     @Bean
-    public CrawlClient firecrawlClient(MeterRegistry registry) {
-
+    public CrawlClient crawlClient(MeterRegistry registry) {
         if (apiKey == null || apiKey.isBlank()) {
-            logger.warn("Firecrawl disabled: missing API key");
+            logger.warn("Crawl client disabled: missing API key");
             enabled = false;
         }
 
         Duration timeout = Duration.ofSeconds(Math.max(5, timeoutSeconds));
         Long maxAgeValue = maxAge > 0 ? maxAge : null;
 
-        logger.info("""
-                Firecrawl client configured:
-                  - endpoint = {}
-                  - enabled = {}
-                  - onlyMain = {}
-                  - maxAge = {}
-                  - formats = {}
-                  - parsers = {}
-                  - timeout = {}s
-                """,
+        logger.info(
+                "Crawl client configured endpoint={} enabled={} onlyMain={} maxAge={} formats={} parsers={} timeoutSeconds={}",
                 endpoint,
                 enabled,
                 onlyMainContent,
@@ -86,7 +77,9 @@ public class FirecrawlConfig {
     }
 
     private List<String> parseList(String raw) {
-        if (raw == null || raw.isBlank()) return List.of();
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
         return Arrays.stream(raw.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isBlank())

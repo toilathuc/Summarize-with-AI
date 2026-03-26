@@ -6,8 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +15,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +31,7 @@ public class CrawlClient {
     private static final long INITIAL_BACKOFF_MS = 350;
     private static final long DOMAIN_COOLDOWN_MS = 60_000;
     private static final Pattern BAD_URL = Pattern.compile("^#|javascript:|^\\s*$");
-    private static final String JINA_PREFIX = "https://r.jina.ai/";
+    private static final String QUOTA_EXPIRED_MESSAGE = "Firecrawl quota exhausted";
 
     private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -43,8 +40,6 @@ public class CrawlClient {
     private final boolean enabled;
     private final boolean onlyMainContent;
     private final Long maxAge;
-    private final List<String> formats;
-    private final List<String> parsers;
     private final Duration timeout;
     private final Counter externalCallCounter;
     private final Semaphore throttle = new Semaphore(3);
@@ -76,8 +71,6 @@ public class CrawlClient {
         this.enabled = enabled && apiKey != null && !apiKey.isBlank() && endpoint != null;
         this.onlyMainContent = onlyMainContent;
         this.maxAge = maxAge != null && maxAge > 0 ? maxAge : null;
-        this.formats = (formats == null || formats.isEmpty()) ? List.of("markdown") : List.copyOf(formats);
-        this.parsers = parsers == null ? List.of() : List.copyOf(parsers);
         this.timeout = timeout == null ? Duration.ofSeconds(45) : timeout;
         this.externalCallCounter = registry == null ? null
                 : registry.counter("summarizer_external_calls_total", "service", "firecrawl");
@@ -92,13 +85,7 @@ public class CrawlClient {
     }
 
     public Optional<String> fetchMarkdown(String targetUrl) {
-        Optional<String> fc = fetchFromFirecrawl(targetUrl);
-        if (fc.isPresent()) return fc;
-
-        Optional<String> jina = fetchFromJina(targetUrl);
-        if (jina.isPresent()) return jina;
-
-        return fetchFromJsoup(targetUrl);
+        return fetchFromFirecrawl(targetUrl);
     }
 
     private Optional<String> fetchFromFirecrawl(String targetUrl) {
@@ -167,6 +154,18 @@ public class CrawlClient {
                 });
             }
 
+            if (code == 402) {
+                logger.warn("{} for {}", QUOTA_EXPIRED_MESSAGE, url);
+                logErrorDetail(resp.body());
+                return Optional.empty();
+            }
+
+            if (isQuotaExpiredBody(resp.body())) {
+                logger.warn("{} for {}", QUOTA_EXPIRED_MESSAGE, url);
+                logErrorDetail(resp.body());
+                return Optional.empty();
+            }
+
             if (code == 429 || code == 503) {
                 logger.warn("Rate limit {} for {} (attempt {}/{})", code, url, attempt, MAX_RETRY);
 
@@ -212,6 +211,19 @@ public class CrawlClient {
         }
     }
 
+    public boolean isQuotaExpiredBody(String body) {
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+
+        String lower = body.toLowerCase();
+        return lower.contains("quota")
+                || lower.contains("limit exceeded")
+                || lower.contains("billing")
+                || lower.contains("payment required")
+                || lower.contains("subscription");
+    }
+
     private boolean validateUrl(String url) {
         return url != null && !BAD_URL.matcher(url).find();
     }
@@ -242,71 +254,10 @@ public class CrawlClient {
         root.put("onlyMainContent", onlyMainContent);
 
         if (maxAge != null) root.put("maxAge", maxAge);
-
         ArrayNode f = root.putArray("formats");
-        formats.forEach(f::add);
-
-        ArrayNode p = root.putArray("parsers");
-        parsers.forEach(p::add);
+        f.add("markdown");
 
         return root;
-    }
-
-    private Optional<String> fetchFromJina(String targetUrl) {
-        logger.info("Fallback to Jina AI for: {}", targetUrl);
-        try {
-            String jinaUrl = JINA_PREFIX + targetUrl;
-
-            HttpRequest request = HttpRequest.newBuilder(URI.create(jinaUrl))
-                    .timeout(Duration.ofSeconds(30))
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (resp.statusCode() == 200) {
-                String body = resp.body();
-                try {
-                    JsonNode root = mapper.readTree(body);
-                    if (root.has("data") && root.get("data").has("content")) {
-                        return Optional.of(root.get("data").get("content").asText());
-                    }
-                } catch (Exception ignored) {
-                }
-
-                if (body != null && body.length() > 100) {
-                    logger.info("Jina AI success ({} chars)", body.length());
-                    return Optional.of(body);
-                }
-            }
-            logger.warn("Jina AI failed with status: {}", resp.statusCode());
-        } catch (Exception e) {
-            logger.warn("Jina AI exception: {}", e.getMessage());
-        }
-        return Optional.empty();
-    }
-
-    private Optional<String> fetchFromJsoup(String targetUrl) {
-        logger.info("Fallback to Jsoup (Local) for: {}", targetUrl);
-        try {
-            Document doc = Jsoup.connect(targetUrl)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-                    .timeout(30000)
-                    .get();
-
-            String title = doc.title();
-            String body = doc.body().text();
-
-            if (body.length() > 200) {
-                String markdown = "# " + title + "\n\n" + body;
-                logger.info("Jsoup success ({} chars)", markdown.length());
-                return Optional.of(markdown);
-            }
-        } catch (Exception e) {
-            logger.warn("Jsoup failed: {}", e.getMessage());
-        }
-        return Optional.empty();
     }
 
     public boolean isEnabled() {

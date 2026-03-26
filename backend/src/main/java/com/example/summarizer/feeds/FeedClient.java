@@ -3,8 +3,6 @@ package com.example.summarizer.feeds;
 import com.example.summarizer.domain.FeedArticle;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jsoup.Jsoup;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,11 +21,14 @@ import java.io.StringReader;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class FeedClient {
 
     private static final Logger logger = LoggerFactory.getLogger(FeedClient.class);
+    private static final Pattern HREF_PATTERN = Pattern.compile("href=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
 
     private final RestTemplate restTemplate;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -174,11 +175,9 @@ public class FeedClient {
         if (descriptionHtml == null || descriptionHtml.isBlank()) return null;
 
         try {
-            org.jsoup.nodes.Document doc = Jsoup.parseBodyFragment(descriptionHtml);
-            Elements anchors = doc.select("a[href]");
-
-            for (org.jsoup.nodes.Element a : anchors) {
-                String href = a.attr("href").trim();
+            Matcher matcher = HREF_PATTERN.matcher(descriptionHtml);
+            while (matcher.find()) {
+                String href = matcher.group(1).trim();
                 if (href.isBlank()) continue;
                 if (isTechmemeLink(href)) continue;
                 return href;

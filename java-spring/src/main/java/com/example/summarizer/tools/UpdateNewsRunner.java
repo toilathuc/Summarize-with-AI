@@ -26,7 +26,7 @@ public class UpdateNewsRunner implements CommandLineRunner {
         System.out.println("Running news update pipeline (top=" + top + ")...");
     java.nio.file.Path out = pipeline.run(top);
     System.out.println("Update complete. Wrote: " + out.toAbsolutePath().toString());
-        // Exit after run to mimic CLI behaviour
+        
         System.exit(0);
     }
 }

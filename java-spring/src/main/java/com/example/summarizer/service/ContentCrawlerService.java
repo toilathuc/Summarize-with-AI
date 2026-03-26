@@ -30,10 +30,7 @@ public class ContentCrawlerService implements ContentEnricherPort {
         this.alwaysRefresh = alwaysRefresh;
     }
 
-    /**
-     * Populates missing article content using Firecrawl. When {@code forceRefresh} is true we will crawl
-     * even if some content already exists (useful right after pulling from RSS where we only have snippets).
-     */
+    
     public void enrich(List<FeedArticle> articles, boolean forceRefresh) {
         if (articles == null || articles.isEmpty()) return;
         if (firecrawlClient == null || !firecrawlClient.isEnabled()) return;

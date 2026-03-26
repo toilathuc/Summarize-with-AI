@@ -23,7 +23,7 @@ public class SummariesController {
     public ResponseEntity<?> getSummaries() {
         try {
             Map<String, Object> data = service.getSummaries();
-            // Attach correlation id from MDC
+            
             data.put("correlation_id", MDC.get("correlationId"));
             return ResponseEntity.ok(data);
         } catch (IOException ex) {

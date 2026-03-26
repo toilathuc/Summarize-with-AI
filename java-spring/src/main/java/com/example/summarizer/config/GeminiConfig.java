@@ -34,7 +34,7 @@ public class GeminiConfig {
 
     @Bean
     public SummarizerPort geminiClient() {
-        // If provider is google and the endpoint is still the placeholder, set the Google Generative API endpoint
+        
         String effectiveEndpoint = endpoint;
         if ("google".equalsIgnoreCase(provider)) {
             if (endpoint == null || endpoint.contains("example.com") || endpoint.trim().isEmpty()) {

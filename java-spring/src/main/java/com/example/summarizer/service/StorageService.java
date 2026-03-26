@@ -52,7 +52,7 @@ public class StorageService implements SummaryStorePort {
         this.dataSource.setUrl("jdbc:sqlite:" + this.databasePath.toAbsolutePath());
 
         initDatabase();
-        logger.info("✅ StorageService initialized. SQLite path: " + this.databasePath.toAbsolutePath());
+        logger.info(" StorageService initialized. SQLite path: " + this.databasePath.toAbsolutePath());
     }
 
     private void initDatabase() {
@@ -109,7 +109,7 @@ public class StorageService implements SummaryStorePort {
             throw new IOException("Failed to persist summaries into SQLite", e);
         }
 
-        logger.info("💾 Saved summaries to SQLite cache at " + databasePath.toAbsolutePath());
+        logger.info(" Saved summaries to SQLite cache at " + databasePath.toAbsolutePath());
         return databasePath;
     }
 
@@ -158,7 +158,7 @@ public class StorageService implements SummaryStorePort {
             Map<String, Object> metadata = fetchMetadata(conn);
 
             if (summaries.isEmpty() && metadata.isEmpty()) {
-                logger.warning("⚠️ No cached summaries found in SQLite at " + databasePath.toAbsolutePath());
+                logger.warning(" No cached summaries found in SQLite at " + databasePath.toAbsolutePath());
                 return null;
             }
 

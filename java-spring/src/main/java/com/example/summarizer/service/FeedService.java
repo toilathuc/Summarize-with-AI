@@ -35,7 +35,7 @@ public class FeedService implements FeedPort {
         List<FeedArticle> cached = articleRepository.fetchLatest(limit);
         contentEnricher.enrich(cached, false);
 
-        // Always try to fetch fresh on demand; fall back to cache when RSS/sample is empty.
+        
         List<FeedArticle> fresh = client.fetchArticles(limit);
         if (!fresh.isEmpty()) {
             contentEnricher.enrich(fresh, true);

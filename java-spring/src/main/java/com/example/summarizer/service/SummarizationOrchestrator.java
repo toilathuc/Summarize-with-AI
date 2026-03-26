@@ -17,9 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Port of the Python SummarizationService orchestration logic.
- */
+
 public class SummarizationOrchestrator implements SummarizeUseCase {
 
     private static final Logger logger = LoggerFactory.getLogger(SummarizationOrchestrator.class);

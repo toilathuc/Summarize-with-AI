@@ -15,10 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-/**
- * Minimal REST-based Gemini client with simple retry logic.
- * Endpoint URL is configurable; body is JSON: {"model":..., "prompt":...}
- */
+
 public class GeminiClient implements SummarizerPort {
 
     private static final Logger logger = LoggerFactory.getLogger(GeminiClient.class);
@@ -29,7 +26,7 @@ public class GeminiClient implements SummarizerPort {
     private final String model;
     private final int maxRetries;
     private final URI endpoint;
-    private final String provider; // "raw" or "google"
+    private final String provider; 
     private final boolean useApiKeyAsQuery;
 
     public GeminiClient(String apiKey, String model, int maxRetries, String endpointUrl) {
@@ -52,16 +49,14 @@ public class GeminiClient implements SummarizerPort {
                 .build();
     }
 
-    /**
-     * Generate text for the given prompt. Returns the textual output (not raw JSON) when possible.
-     */
+    
     @Override
     public String generate(String prompt) throws IOException, InterruptedException {
         String payload;
         if ("google".equalsIgnoreCase(provider)) {
             payload = mapper.writeValueAsString(buildGooglePayload(prompt));
         } else {
-            // Default raw shape: {"model":..., "prompt":...}
+            
             payload = mapper.writeValueAsString(new RequestBody(model, prompt));
         }
 
@@ -70,9 +65,9 @@ public class GeminiClient implements SummarizerPort {
                 .timeout(Duration.ofSeconds(60))
                 .header("Content-Type", "application/json");
 
-        // For Google provider we may use API key as query parameter instead of Authorization header
+        
         if ("google".equalsIgnoreCase(provider) && useApiKeyAsQuery && apiKey != null && !apiKey.isBlank()) {
-            // Append ?key=... or &key=... depending on existing query
+            
             String sep = endpoint.getQuery() == null ? "?" : "&";
             URI newUri = URI.create(endpoint.toString() + sep + "key=" + apiKey);
             rb.uri(newUri);
@@ -173,7 +168,7 @@ public class GeminiClient implements SummarizerPort {
         return body;
     }
 
-    // Simple helper used to build request JSON for raw provider
+    
     private static class RequestBody {
         public final String model;
         public final String prompt;

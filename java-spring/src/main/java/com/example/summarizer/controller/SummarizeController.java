@@ -24,7 +24,7 @@ public class SummarizeController {
     public ResponseEntity<?> summarize(@RequestBody List<FeedArticle> articles) {
         try {
             List<SummaryResult> results = summarizer.summarize(articles);
-            // Attach correlation id for tracing
+            
             return ResponseEntity.ok().header("X-Correlation-ID", MDC.get("correlationId")).body(results);
         } catch (Exception ex) {
             return ResponseEntity.status(500).body(java.util.Map.of("error", ex.getMessage()));

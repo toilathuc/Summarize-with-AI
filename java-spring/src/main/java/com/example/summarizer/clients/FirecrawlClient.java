@@ -17,9 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Lightweight Firecrawl REST client used to scrape article content as markdown.
- */
+
 public class FirecrawlClient {
 
     private static final Logger logger = LoggerFactory.getLogger(FirecrawlClient.class);
@@ -62,9 +60,7 @@ public class FirecrawlClient {
         return enabled;
     }
 
-    /**
-     * Calls Firecrawl and returns the markdown payload when available.
-     */
+    
     public Optional<String> fetchMarkdown(String targetUrl) {
         if (!enabled) return Optional.empty();
         if (targetUrl == null || targetUrl.isBlank()) return Optional.empty();

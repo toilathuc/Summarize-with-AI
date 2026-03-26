@@ -112,7 +112,7 @@ async function handleRefresh(elements) {
 
   const icon = refreshBtn.querySelector(".refresh-icon");
 
-  // Prevent multiple simultaneous refreshes
+  
   if (refreshBtn.disabled) {
     console.warn("Refresh already in progress");
     return;
@@ -126,7 +126,7 @@ async function handleRefresh(elements) {
   try {
     console.log("Starting fast refresh...");
 
-    // Use fast refresh by default
+    
     const data = await refreshNewsFast();
 
     console.log("Fast refresh completed:", {
@@ -135,22 +135,22 @@ async function handleRefresh(elements) {
       isStale: data.isStale,
     });
 
-    // Update state
+    
     state.newsData = data.items || [];
     state.lastUpdated = data.lastUpdated;
 
-    // Apply current filters
+    
     const searchTerm = elements.searchInput?.value || "";
     const typeValue = elements.typeFilter?.value || "";
     state.filteredData = applyFilters(state.newsData, searchTerm, typeValue);
 
-    // Update UI
+    
     renderCurrentData(elements);
     updateLastUpdated(elements.lastUpdatedElement, state.lastUpdated);
 
     showLoadingOverlay(loadingOverlay, false);
 
-    // Success animation
+    
     refreshBtn.classList.remove("loading");
     refreshBtn.classList.add("success");
     if (icon) {
@@ -160,12 +160,12 @@ async function handleRefresh(elements) {
     const totalItems = state.newsData.length;
     let successMessage = `Loaded ${totalItems} articles`;
 
-    // Show freshness info
+    
     if (data.freshness) {
       successMessage += ` (updated ${data.freshness})`;
     }
 
-    // Add stale indicator if needed
+    
     if (data.isStale) {
       successMessage += ` data is stale`;
     } else {
@@ -174,7 +174,7 @@ async function handleRefresh(elements) {
 
     showRefreshSuccess(successMessage);
 
-    // Reset button after 3 seconds
+    
     setTimeout(() => {
       refreshBtn.classList.remove("success");
       if (icon) {
@@ -196,7 +196,7 @@ async function handleRefresh(elements) {
       error.message || "Unable to update data. Please try again later."
     );
 
-    // Reset button after 5 seconds on error
+    
     setTimeout(() => {
       refreshBtn.classList.remove("error");
       if (icon) {
@@ -207,10 +207,7 @@ async function handleRefresh(elements) {
   }
 }
 
-/**
- * Handle full backend update - fetch from Techmeme + AI summarization.
- * This is the slow path (30-90 seconds).
- */
+
 function renderCurrentData(elements) {
   if (state.filteredData.length === 0) {
     renderNews(elements.newsContainer, []);

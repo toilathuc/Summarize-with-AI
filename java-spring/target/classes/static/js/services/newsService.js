@@ -1,13 +1,10 @@
-const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by the backend
+const SUMMARIES_API = "/api/summaries"; 
 const REFRESH_API = "/api/refresh";
 
-// Slow `/api/refresh` endpoints were retired. Admins should run
-// `python update_news.py` (or the Windows batch) whenever they need fresh data.
 
-/**
- * Fast refresh - reload data from file without triggering backend update.
- * Returns in <1 second with freshness metadata.
- */
+
+
+
 export async function refreshNewsFast() {
   try {
     const response = await fetch(SUMMARIES_API);
@@ -51,9 +48,7 @@ export async function triggerFullRefresh(top = 20) {
   return response.json();
 }
 
-/**
- * Legacy fetch from static file - kept for compatibility with existing scripts.
- */
+
 export async function fetchNewsData() {
   const apiData = await refreshNewsFast();
   return {

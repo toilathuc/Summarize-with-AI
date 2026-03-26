@@ -23,10 +23,8 @@ public class ContentCrawlerService implements ContentEnricherPort {
     private final int minContentLength;
     private final boolean alwaysRefresh;
 
-    // ⚡ Virtual threads → scalable, nhẹ hơn fixed-thread
     private final ExecutorService pool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().factory());
 
-    // Mỗi batch chỉ 2 bài để tránh 429
     private static final int BATCH_SIZE = 2;
 
     public ContentCrawlerService(
@@ -45,7 +43,6 @@ public class ContentCrawlerService implements ContentEnricherPort {
         if (articles == null || articles.isEmpty()) return;
         if (!firecrawlClient.isEnabled()) return;
 
-        // 1) Lọc ra only những bài cần enrich
         List<FeedArticle> targets = articles.stream()
                 .filter(Objects::nonNull)
                 .filter(a -> shouldRefresh(a, forceRefresh))
@@ -57,7 +54,6 @@ public class ContentCrawlerService implements ContentEnricherPort {
         logger.debug("Enrich start → {} articles (batch size = {})",
                 targets.size(), BATCH_SIZE);
 
-        // 2) Chia batch
         List<List<FeedArticle>> batches = ChunkUtils.chunked(targets, BATCH_SIZE);
 
         for (int i = 0; i < batches.size(); i++) {
@@ -73,9 +69,9 @@ public class ContentCrawlerService implements ContentEnricherPort {
 
                         if (md.isPresent() && !md.get().isBlank()) {
                             article.setContent(md.get());
-                            logger.debug("[Firecrawl] Enriched → {}", article.getTitle());
+                            logger.debug("Firecrawl enriched {}", article.getTitle());
                         } else {
-                            logger.debug("[Firecrawl] Empty/ignored → {}", article.getTitle());
+                            logger.debug("Firecrawl empty or ignored {}", article.getTitle());
                         }
 
                     } catch (Exception ex) {
@@ -86,10 +82,9 @@ public class ContentCrawlerService implements ContentEnricherPort {
             }
 
             try {
-                // 3) Thực thi từng batch → giảm 429 cực mạnh
-                pool.invokeAll(tasks);
-                logger.info("🔥 Firecrawl enriched batch {}/{} ({} articles)",
-                        i + 1, batches.size(), batch.size());
+            pool.invokeAll(tasks);
+            logger.info("Firecrawl enriched batch {}/{} ({} articles)",
+                    i + 1, batches.size(), batch.size());
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -101,9 +96,6 @@ public class ContentCrawlerService implements ContentEnricherPort {
         logger.debug("Enrich completed.");
     }
 
-    /**
-     * Quyết định xem bài có cần crawl lại không
-     */
     private boolean shouldRefresh(FeedArticle article, boolean forceRefresh) {
         if (forceRefresh || alwaysRefresh) return true;
 

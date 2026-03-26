@@ -48,9 +48,6 @@ public class FeedClient {
         this.feedUrl = feedUrl;
     }
 
-    // -----------------------------------------------------------------------
-    // PUBLIC API
-    // -----------------------------------------------------------------------
     public List<FeedArticle> fetchArticles(Integer limit) throws IOException {
 
         List<FeedArticle> rss = fetchRssWithRetry(limit);
@@ -60,26 +57,23 @@ public class FeedClient {
             return rss;
         }
 
-        logger.warn("⚠️ Techmeme RSS failed. Falling back to sample JSON file...");
+        logger.warn("Techmeme RSS failed. Falling back to sample JSON file...");
         List<FeedArticle> fallback = readFromSample(limit);
 
         if (fallback.isEmpty()) {
-            logger.error("❌ Fallback sample file empty – returning empty list!");
+            logger.error("Fallback sample file empty, returning empty list");
         }
 
         return fallback;
     }
 
-    // -----------------------------------------------------------------------
-    // RETRY LOGIC
-    // -----------------------------------------------------------------------
     private List<FeedArticle> fetchRssWithRetry(Integer limit) {
         for (int i = 1; i <= MAX_RETRY; i++) {
             try {
                 List<FeedArticle> items = fetchFromRss(limit);
                 if (!items.isEmpty()) return items;
 
-                logger.warn("RSS attempt {} failed — empty or invalid. Retrying...", i);
+                logger.warn("RSS attempt {} failed: empty or invalid. Retrying...", i);
 
             } catch (Exception ex) {
                 logger.warn("RSS attempt {} failed: {}", i, ex.getMessage());
@@ -92,9 +86,6 @@ public class FeedClient {
         return List.of();
     }
 
-    // -----------------------------------------------------------------------
-    // RSS FETCH
-    // -----------------------------------------------------------------------
     private List<FeedArticle> fetchFromRss(Integer limit) {
         try {
             String xml = restTemplate.getForObject(feedUrl, String.class);
@@ -113,9 +104,6 @@ public class FeedClient {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // RSS PARSING
-    // -----------------------------------------------------------------------
     private List<FeedArticle> parseRss(String xml, Integer limit) throws IOException {
         Document doc = buildDocument(xml);
 
@@ -155,7 +143,6 @@ public class FeedClient {
     private Document buildDocument(String xml) throws IOException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         try {
-            // disable XXE
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
             factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
@@ -177,9 +164,6 @@ public class FeedClient {
         return nodes.item(0).getTextContent();
     }
 
-    // -----------------------------------------------------------------------
-    // DESCRIPTION / LINK EXTRACTION
-    // -----------------------------------------------------------------------
     private String sanitizeDescription(String raw) {
         if (raw == null) return null;
         String noTags = raw.replaceAll("(?s)<[^>]+>", " ");
@@ -212,9 +196,6 @@ public class FeedClient {
         return lower.contains("techmeme.com");
     }
 
-    // -----------------------------------------------------------------------
-    // FALLBACK SAMPLE
-    // -----------------------------------------------------------------------
     private List<FeedArticle> readFromSample(Integer limit) throws IOException {
         Path file = Path.of("data", "raw", "techmeme_sample_full.json");
 

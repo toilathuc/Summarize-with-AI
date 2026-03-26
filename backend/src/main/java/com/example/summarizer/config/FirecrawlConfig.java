@@ -45,25 +45,23 @@ public class FirecrawlConfig {
     @Bean
     public CrawlClient firecrawlClient(MeterRegistry registry) {
 
-        // ❗ Nếu không có API key → tắt luôn Firecrawl để tránh lỗi 500 & spam request
         if (apiKey == null || apiKey.isBlank()) {
-            logger.warn("⚠️ Firecrawl disabled: missing API key");
+            logger.warn("Firecrawl disabled: missing API key");
             enabled = false;
         }
 
         Duration timeout = Duration.ofSeconds(Math.max(5, timeoutSeconds));
         Long maxAgeValue = maxAge > 0 ? maxAge : null;
 
-        // Log cấu hình để debug dễ hơn
         logger.info("""
-                🔧 Firecrawl Client Configured:
-                  - endpoint       = {}
-                  - enabled        = {}
-                  - onlyMain       = {}
-                  - maxAge         = {}
-                  - formats        = {}
-                  - parsers        = {}
-                  - timeout        = {}s
+                Firecrawl client configured:
+                  - endpoint = {}
+                  - enabled = {}
+                  - onlyMain = {}
+                  - maxAge = {}
+                  - formats = {}
+                  - parsers = {}
+                  - timeout = {}s
                 """,
                 endpoint,
                 enabled,

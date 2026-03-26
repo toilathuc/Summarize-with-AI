@@ -22,7 +22,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final int refreshLimit;
     private final int windowSeconds;
     private final MeterRegistry registry;
-    private Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
+    private final Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
 
     public RateLimitFilter(
             RateLimitService rl,
@@ -39,17 +39,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest req,
-                                    HttpServletResponse res,
-                                    FilterChain chain)
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
 
         String ip = req.getRemoteAddr();
         String path = req.getRequestURI();
 
-        // ===========================
-        // Rate-limit endpoint /refresh
-        // ===========================
         if (path.startsWith("/api/refresh")) {
             String refreshKey = "ip:" + ip + ":refresh";
 
@@ -70,9 +65,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
             recordRateLimit("refresh", "allowed");
         }
 
-        // ===========================
-        // Rate-limit toàn app
-        // ===========================
         String globalKey = "ip:" + ip + ":all";
 
         if (!rl.allow(globalKey, globalLimit, windowSeconds)) {
@@ -90,7 +82,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         recordRateLimit("global", "allowed");
-
         chain.doFilter(req, res);
     }
 

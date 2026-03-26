@@ -28,12 +28,10 @@ public class RefreshController {
             HttpServletRequest request
     ) {
 
-        // ====== GEN CID ======
         String cid = (incomingId != null && !incomingId.isBlank())
                 ? incomingId
                 : UUID.randomUUID().toString();
 
-        // ====== TRY START MANUAL ======
         if (!coordinator.tryStartManual()) {
 
             var status = coordinator.getStatus();
@@ -48,10 +46,9 @@ public class RefreshController {
             ));
         }
 
-        // ====== START NEW REFRESH (ASYNC) ======
         coordinator.runAsyncRefresh(top, cid)
                 .thenAccept(path ->
-                        System.out.println("📦 MANUAL refresh completed, output=" + path)
+                        System.out.println("MANUAL refresh completed, output=" + path)
                 )
                 .exceptionally(ex -> {
                     ex.printStackTrace();

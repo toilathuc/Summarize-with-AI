@@ -1,14 +1,7 @@
-const SUMMARIES_API = "/api/summaries"; // Fast endpoint served by the backend
+const SUMMARIES_API = "/api/summaries";
 const REFRESH_API = "/api/refresh";
 const STATUS_API = "/api/refresh/status";
 
-// Slow `/api/refresh` endpoints were retired. Admins should run
-// `python update_news.py` (or the Windows batch) whenever they need fresh data.
-
-/**
- * Fast refresh - reload data from file without triggering backend update.
- * Returns in <1 second with freshness metadata.
- */
 export async function refreshNewsFast() {
   try {
     const response = await fetch(SUMMARIES_API);
@@ -24,10 +17,10 @@ export async function refreshNewsFast() {
       lastUpdated: data.last_updated,
       isStale: data.is_stale,
       freshness: data.freshness,
-      count: data.count
+      count: data.count,
     };
   } catch (error) {
-    console.error("Fast refresh error:", error);
+    console.error(error);
     throw error;
   }
 }
@@ -43,7 +36,6 @@ export async function triggerFullRefresh(top = 20) {
 
   const payload = await safeJson(res);
 
-  // Rate limit / running still return a payload we want to surface to UI
   if (res.status === 429) {
     return {
       status: "rate_limited",
@@ -65,9 +57,6 @@ export async function triggerFullRefresh(top = 20) {
   return payload;
 }
 
-/**
- * Legacy fetch from static file - kept for compatibility with existing scripts.
- */
 export async function fetchNewsData() {
   const apiData = await refreshNewsFast();
   return {
@@ -87,10 +76,10 @@ export async function fetchRefreshStatus() {
     return {
       running: Boolean(data.running),
       reason: data.reason || "unknown",
-      lastRunAt: data.lastRunAt
+      lastRunAt: data.lastRunAt,
     };
   } catch (err) {
-    console.error("Failed to fetch refresh status", err);
+    console.error(err);
     return {
       running: false,
       reason: "unknown",

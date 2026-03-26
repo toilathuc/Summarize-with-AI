@@ -4,35 +4,28 @@ import com.example.summarizer.ports.SummarizerPort;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.*;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.UUID;
 
-/**
- * GeminiClient — PRODUCTION version
- * ----------------------------------
- * ✓ Retry thông minh với backoff
- * ✓ Timeout cứng
- * ✓ User-Agent tránh chặn bot
- * ✓ Google format parsing resilient
- * ✓ An toàn cho xử lý song song (virtual threads)
- */
 public class GeminiClient implements SummarizerPort {
 
     private static final Logger logger = LoggerFactory.getLogger(GeminiClient.class);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
 
     private final HttpClient http;
     private final ObjectMapper mapper = new ObjectMapper();
-
     private final String apiKey;
     private final String model;
     private final URI endpoint;
@@ -41,11 +34,15 @@ public class GeminiClient implements SummarizerPort {
     private final boolean useApiKeyAsQuery;
     private final Counter externalCallCounter;
 
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
-
-    public GeminiClient(String apiKey, String model, int maxRetries, String endpointUrl,
-                        String provider, boolean useApiKeyAsQuery, MeterRegistry registry) {
-
+    public GeminiClient(
+            String apiKey,
+            String model,
+            int maxRetries,
+            String endpointUrl,
+            String provider,
+            boolean useApiKeyAsQuery,
+            MeterRegistry registry
+    ) {
         this.apiKey = apiKey;
         this.model = model;
         this.maxRetries = Math.max(1, maxRetries);
@@ -61,17 +58,13 @@ public class GeminiClient implements SummarizerPort {
                 .build();
     }
 
-
     @Override
     public String generate(String prompt) throws IOException, InterruptedException {
-
-        // MOCK MODE: Trả về kết quả giả lập ngay lập tức
         if ("mock".equalsIgnoreCase(provider)) {
-            logger.info("Gemini (MOCK) → Returning fake summary");
+            logger.info("Gemini mock mode: returning fake summary");
             return buildMockPayload(prompt);
         }
 
-        // Default: Google Payload
         String payload = mapper.writeValueAsString(buildGooglePayload(prompt));
 
         HttpRequest.Builder rb = HttpRequest.newBuilder()
@@ -82,7 +75,6 @@ public class GeminiClient implements SummarizerPort {
                                 + "AppleWebKit/537.36 (KHTML, like Gecko) "
                                 + "Chrome/125.0 Safari/537.36");
 
-        // Google Auth: Query param (default) or Bearer token
         if (useApiKeyAsQuery) {
             String sep = endpoint.getQuery() == null ? "?" : "&";
             rb.uri(URI.create(endpoint + sep + "key=" + apiKey));
@@ -92,14 +84,12 @@ public class GeminiClient implements SummarizerPort {
         }
 
         HttpRequest request = rb.POST(HttpRequest.BodyPublishers.ofString(payload)).build();
-
-        // correlation id theo request → info dễ hơn
         String correlationId = UUID.randomUUID().toString().substring(0, 8);
 
-        logger.info("Gemini({}) → Prepared request: provider={}, model={}, endpoint={}",
+        logger.info("Gemini({}) prepared request: provider={}, model={}, endpoint={}",
                 correlationId, provider, model, endpoint);
 
-        long backoff = 5000; // Start with 5s backoff
+        long backoff = 5000;
         int attempt = 0;
 
         while (attempt <= maxRetries) {
@@ -115,20 +105,16 @@ public class GeminiClient implements SummarizerPort {
 
                 incrementExternalCalls();
 
-                HttpResponse<String> resp =
-                        http.send(request, HttpResponse.BodyHandlers.ofString());
-
+                HttpResponse<String> resp = http.send(request, HttpResponse.BodyHandlers.ofString());
                 int code = resp.statusCode();
                 String body = resp.body();
 
                 if (isSuccess(code)) {
-                    logger.info("Gemini({}) success ({} chars)", correlationId,
-                            body == null ? 0 : body.length());
-
+                    logger.info("Gemini({}) success ({} chars)", correlationId, body == null ? 0 : body.length());
                     try {
                         return extractGoogleText(body);
                     } catch (Exception ex) {
-                        logger.warn("Gemini({}) parse-google failed → using raw", correlationId);
+                        logger.warn("Gemini({}) Google parse failed, using raw body", correlationId);
                         return body;
                     }
                 }
@@ -138,31 +124,24 @@ public class GeminiClient implements SummarizerPort {
                     throw new IOException("Gemini error " + code + ": " + body);
                 }
 
-                logger.warn("Gemini({}) retryable {} → retry {} of {}", correlationId, code, attempt, maxRetries);
+                logger.warn("Gemini({}) retryable {} on attempt {}/{}", correlationId, code, attempt, maxRetries);
 
-                // Nếu gặp 429 (Rate Limit), ngủ hẳn 60s để hồi quota
                 if (code == 429) {
-                    logger.warn("Gemini({}) hit 429 → Sleeping 60s to cool down...", correlationId);
+                    logger.warn("Gemini({}) hit 429, sleeping 60s", correlationId);
                     Thread.sleep(60000);
-                    // Reset backoff để không tăng thêm nữa
-                    backoff = 5000; 
+                    backoff = 5000;
                     continue;
                 }
-
             } catch (IOException | InterruptedException ex) {
-                // Log full exception info because ex.getMessage() can be null (e.g. NPE, some IOExceptions)
-                logger.warn("Gemini({}) call exception → retry {}/{}: {}",
-                        correlationId, attempt, maxRetries, ex.toString());
+                logger.warn("Gemini({}) call exception on retry {}/{}: {}", correlationId, attempt, maxRetries, ex);
             }
 
             Thread.sleep(backoff);
-            backoff = Math.min(backoff * 2, 30000); // max 30s
+            backoff = Math.min(backoff * 2, 30000);
         }
+
         throw new IOException("Gemini failed after " + maxRetries + " retries");
     }
-
-
-    /* Helpers ----------------------------------------------------------- */
 
     private boolean isSuccess(int code) {
         return code >= 200 && code < 300;
@@ -172,12 +151,8 @@ public class GeminiClient implements SummarizerPort {
         return code == 429 || code == 500 || code == 503;
     }
 
-
-    /* Google Payload ----------------------------------------------------- */
-
     private ObjectNode buildGooglePayload(String prompt) {
         ObjectNode root = mapper.createObjectNode();
-
         ArrayNode contents = root.putArray("contents");
         ObjectNode msg = mapper.createObjectNode();
 
@@ -198,12 +173,8 @@ public class GeminiClient implements SummarizerPort {
         config.set("thinkingConfig", thinking);
 
         root.set("generationConfig", config);
-
         return root;
     }
-
-
-    /* Google JSON extract ------------------------------------------------ */
 
     private String extractGoogleText(String body) throws IOException {
         JsonNode root = mapper.readTree(body);
@@ -232,19 +203,15 @@ public class GeminiClient implements SummarizerPort {
         return body;
     }
 
-    /* Mock provider ------------------------------------------------ */
     private String buildMockPayload(String prompt) throws JsonProcessingException {
-        // Đếm số lượng bài trong prompt để trả về đúng số lượng mock item
         int itemCount = 1;
         try {
-            // Tìm chuỗi "Input items: " trong prompt để parse JSON
             int idx = prompt.indexOf("Input items: ");
             if (idx >= 0) {
                 String jsonPart = prompt.substring(idx + 13).trim();
-                // Cắt bớt phần thừa nếu có (ví dụ "\nReturn ONLY...")
                 int endIdx = jsonPart.indexOf("\nReturn ONLY");
                 if (endIdx > 0) jsonPart = jsonPart.substring(0, endIdx);
-                
+
                 JsonNode items = mapper.readTree(jsonPart);
                 if (items.isArray()) {
                     itemCount = items.size();
@@ -254,26 +221,24 @@ public class GeminiClient implements SummarizerPort {
             logger.warn("Mock parse failed, defaulting to 1 item: {}", e.getMessage());
         }
 
-        // Build mock response dynamic theo số lượng item
         ArrayNode summaries = mapper.createArrayNode();
         for (int i = 0; i < itemCount; i++) {
             ObjectNode s = mapper.createObjectNode();
             s.put("title", "Mock Summary Title " + (i + 1));
             s.put("url", "http://example.com/mock-" + (i + 1));
-            
+
             ArrayNode bullets = s.putArray("bullets");
-            bullets.add("Đây là tóm tắt giả lập bài số " + (i + 1));
-            bullets.add("Hệ thống đang chạy chế độ Mock.");
-            bullets.add("Google API đang bị rate limit.");
-            
-            s.put("why_it_matters", "Giúp kiểm thử luồng hoạt động mà không cần gọi API thật.");
+            bullets.add("This is a fake summary for item " + (i + 1));
+            bullets.add("The system is running in mock mode.");
+            bullets.add("The Google API is rate limited.");
+
+            s.put("why_it_matters", "This helps test the workflow without calling the real API.");
             s.put("type", "news");
             summaries.add(s);
         }
-        
+
         ObjectNode root = mapper.createObjectNode();
         root.set("summaries", summaries);
-        
         return mapper.writeValueAsString(root);
     }
 

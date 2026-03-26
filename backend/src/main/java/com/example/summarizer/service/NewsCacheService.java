@@ -14,7 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class NewsCacheService implements CachePort {
@@ -47,8 +51,6 @@ public class NewsCacheService implements CachePort {
         this.feedTtl = Duration.ofSeconds(Math.max(1, feedTtlSeconds));
         this.seenTtl = Duration.ofSeconds(Math.max(1, seenTtlSeconds));
     }
-
-    /* ====================== SUMMARIES ====================== */
 
     @Override
     public Optional<Map<String, Object>> getSummaries() {
@@ -85,8 +87,6 @@ public class NewsCacheService implements CachePort {
         cache.delete(summariesKey());
     }
 
-
-    /* ====================== SUMMARY-RESULT =========================== */
     @Override
     public Optional<SummaryResult> getSummaryResult(String url) {
         try {
@@ -121,9 +121,6 @@ public class NewsCacheService implements CachePort {
         cache.delete(summaryResultKey(url));
     }
 
-
-    /* ====================== FEED =========================== */
-
     @Override
     public Optional<List<FeedArticle>> getFeed(Integer limit) {
         try {
@@ -157,11 +154,8 @@ public class NewsCacheService implements CachePort {
     @Transactional
     public void evictFeed(Integer limit) {
         cache.delete(feedKey(limit));
-        // also clear the generic cache to avoid stale data for other callers
         cache.delete(feedKey(null));
     }
-
-    /* ====================== SEEN HASHES ==================== */
 
     @Override
     public Map<String, String> loadSeenHashes() {
@@ -183,8 +177,6 @@ public class NewsCacheService implements CachePort {
     public void evictSeenHashes() {
         cache.delete(seenKey());
     }
-
-    /* ====================== HELPERS ======================== */
 
     private String summariesKey() {
         return prefix + ":cache:summaries";

@@ -28,19 +28,16 @@ public class UpdateNewsRunner implements CommandLineRunner {
 
         if (!updateNow) return;
 
-        System.out.println("Running news update pipeline (top=" + top + ")...");
+        System.out.println("Running news update pipeline (top=" + top + ")");
 
         String cid = "cli-" + System.currentTimeMillis();
 
-        // ⭐ Gọi async nhưng đợi kết quả như CLI đúng nghĩa
         CompletableFuture<Path> future = coordinator.runAsyncRefresh(top, cid);
 
-        // ⭐ Đợi async hoàn thành (block)
         Path out = future.get();
 
         System.out.println("Update complete. Wrote: " + out.toAbsolutePath());
 
-        // Mimic CLI behaviour: exit ngay
         System.exit(0);
     }
 }

@@ -3,20 +3,16 @@ import { sleep } from "k6";
 
 export const options = {
   stages: [
-    { duration: "5s", target: 20 }, // warm up
-    { duration: "10s", target: 50 }, // load nhẹ
-    { duration: "10s", target: 80 }, // thử giới hạn
-    { duration: "10s", target: 100 }, // đẩy max realistic
-    { duration: "5s", target: 0 }, // cooldown
+    { duration: "5s", target: 20 },
+    { duration: "10s", target: 50 },
+    { duration: "10s", target: 80 },
+    { duration: "10s", target: 100 },
+    { duration: "5s", target: 0 },
   ],
-
   thresholds: {
-    // Đọc summaries là luồng chính cho người dùng → nên đặt mục tiêu error < 1%
     http_req_failed: ["rate<0.01"],
-    // p95 < 1s để UX mượt
     http_req_duration: ["p(95)<1000"],
   },
-
   noConnectionReuse: false,
   discardResponseBodies: true,
 };
@@ -28,7 +24,6 @@ export default function () {
   sleep(1);
 }
 
-// PHẦN QUAN TRỌNG CHO REPORTER
 export function handleSummary(data) {
   console.log("Preparing the end-of-test summary (summaries-stress)...");
   return {

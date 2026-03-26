@@ -1,7 +1,7 @@
 package unit;
 
-import com.example.summarizer.service.NewsCacheService;
 import com.example.summarizer.domain.FeedArticle;
+import com.example.summarizer.service.NewsCacheService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NewsCacheServiceTest {
 
@@ -21,7 +22,7 @@ class NewsCacheServiceTest {
                 registry,
                 "summarizer:test",
                 3600,
-                86400, // summaryResultTtl
+                86400,
                 120,
                 86400
         );
@@ -37,7 +38,8 @@ class NewsCacheServiceTest {
         double hits = registry.get("summarizer_cache_requests_total")
                 .tag("cache", "feed")
                 .tag("result", "hit")
-                .counter().count();
+                .counter()
+                .count();
         assertTrue(hits >= 1.0, "hit counter should increment");
     }
 
@@ -49,7 +51,7 @@ class NewsCacheServiceTest {
                 registry,
                 "summarizer:test",
                 3600,
-                86400, // summaryResultTtl
+                86400,
                 120,
                 86400
         );
@@ -69,7 +71,7 @@ class NewsCacheServiceTest {
                 new SimpleMeterRegistry(),
                 "summarizer:test",
                 3600,
-                86400, // summaryResultTtl
+                86400,
                 120,
                 86400
         );

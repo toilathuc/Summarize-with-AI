@@ -10,22 +10,28 @@ import com.example.summarizer.utils.ChunkUtils;
 import com.example.summarizer.utils.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SummarizationOrchestrator implements SummarizeUseCase {
 
     private static final Logger logger = LoggerFactory.getLogger(SummarizationOrchestrator.class);
-
-    // ==========================
-    // CONFIG
-    // ==========================
     private static final int MAX_PARALLEL_BATCHES = 2;
     private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(120);
     private static final int BATCH_RETRY = 2;
@@ -49,53 +55,42 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         this.batchSize = Math.max(1, batchSize);
     }
 
-    // ===============================================================
-    // PUBLIC API
-    // ===============================================================
-
     @Override
     public List<SummaryResult> summarize(List<FeedArticle> articles) throws Exception {
-
         if (articles == null || articles.isEmpty()) return List.of();
 
         List<SummaryResult> ordered = new ArrayList<>(Collections.nCopies(articles.size(), null));
         List<PendingRequest> pending = new ArrayList<>();
         int reused = 0;
 
-        // 1) REUSE CACHE
         for (int i = 0; i < articles.size(); i++) {
             FeedArticle art = articles.get(i);
             if (art.getIsSummarized()) {
-               SummaryResult result = cache.getSummaryResult(art.getUrl()).orElse(null);
-               if (result != null) {
-                   ordered.set(i, result);
-                   reused++;
-               } else {
-                   // Cache miss for summarized article - re-summarize it
-                   pending.add(new PendingRequest(art.toSummaryRequest(), i));
-               }
+                SummaryResult result = cache.getSummaryResult(art.getUrl()).orElse(null);
+                if (result != null) {
+                    ordered.set(i, result);
+                    reused++;
+                } else {
+                    pending.add(new PendingRequest(art.toSummaryRequest(), i));
+                }
             } else {
                 pending.add(new PendingRequest(art.toSummaryRequest(), i));
             }
         }
 
-        logger.info("Summaries → {} reused, {} pending", reused, pending.size());
+        logger.info("Summaries: {} reused, {} pending", reused, pending.size());
         if (pending.isEmpty()) return ordered;
 
-        // 2) SPLIT BATCH
         List<List<PendingRequest>> batches = ChunkUtils.chunked(pending, batchSize);
-
-        List<Future<List<BatchResult>>> fs = new ArrayList<>();
+        List<Future<List<BatchResult>>> futures = new ArrayList<>();
         int batchId = 0;
 
         for (List<PendingRequest> batch : batches) {
             int myId = batchId++;
 
-            semaphore.acquire(); // Limit parallel
-            fs.add(pool.submit(() -> {
+            semaphore.acquire();
+            futures.add(pool.submit(() -> {
                 try {
-                    // Rate limit enforcement for Free Tier: 5 RPM => 12s per request
-                    // Tăng lên 15s để an toàn tuyệt đối với Google Free Tier (tránh burst)
                     Thread.sleep(15000);
                     return processBatchWithRetry(batch, myId);
                 } finally {
@@ -104,44 +99,34 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
             }));
         }
 
-        // 3) COLLECT RESULTS
-        for (Future<List<BatchResult>> f : fs) {
-            for (BatchResult br : f.get()) {
-                ordered.set(br.position, br.summary);
+        for (Future<List<BatchResult>> future : futures) {
+            for (BatchResult result : future.get()) {
+                ordered.set(result.position, result.summary);
             }
         }
 
         return ordered;
     }
 
-    // ===============================================================
-    // CORE PROCESSING
-    // ===============================================================
-
     private List<BatchResult> processBatchWithRetry(List<PendingRequest> batch, int batchId) {
-
         if (circuitOpen) {
-            logger.warn("⚡ Circuit OPEN → fallback batch {}", batchId);
+            logger.warn("Circuit OPEN, fallback batch {}", batchId);
             return fallbackBatch(batch);
         }
 
         for (int attempt = 0; attempt <= BATCH_RETRY; attempt++) {
-
             try {
-                List<BatchResult> rs = processBatch(batch, batchId);
-
+                List<BatchResult> results = processBatch(batch, batchId);
                 failures.set(0);
                 circuitOpen = false;
-                return rs;
-
+                return results;
             } catch (Exception ex) {
-
-                logger.warn("Batch {} attempt {} failed → {}", batchId, attempt + 1, ex.getMessage());
+                logger.warn("Batch {} attempt {} failed: {}", batchId, attempt + 1, ex.getMessage());
 
                 int failCount = failures.incrementAndGet();
                 if (failCount >= CIRCUIT_THRESHOLD) {
                     circuitOpen = true;
-                    logger.error("🚨 CIRCUIT OPEN after {} failures. All next batches fallback.", failCount);
+                    logger.error("CIRCUIT OPEN after {} failures. All next batches fallback.", failCount);
                 }
 
                 if (attempt == BATCH_RETRY) break;
@@ -152,7 +137,6 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
     }
 
     private List<BatchResult> processBatch(List<PendingRequest> batch, int batchId) throws Exception {
-
         List<SummaryRequest> reqs = batch.stream().map(p -> p.request).toList();
         String prompt = buildPrompt(reqs);
 
@@ -167,20 +151,12 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         }, pool);
 
         String raw = cf.orTimeout(BATCH_TIMEOUT.getSeconds(), TimeUnit.SECONDS).join();
-        // System.out.println("DEBUG: Raw AI response: " + raw);
-
         String jsonStr = JsonUtils.extractJsonBlock(raw);
-        // System.out.println("DEBUG: Extracted JSON: " + jsonStr);
-        
         JsonNode payload = mapper.readTree(jsonStr);
 
         List<SummaryResult> parsed = parseSummaries(payload);
-        // System.out.println("DEBUG: Parsed size: " + parsed.size());
-
         if (parsed.size() != batch.size()) {
-            logger.warn("[Batch {}] Parsed {} but expected {} → fallback",
-                    batchId, parsed.size(), batch.size());
-            // System.out.println("DEBUG: Fallback triggered due to size mismatch");
+            logger.warn("[Batch {}] Parsed {} but expected {} -> fallback", batchId, parsed.size(), batch.size());
             parsed = fallbackSummaries(reqs);
         }
 
@@ -188,22 +164,15 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         for (int i = 0; i < batch.size(); i++) {
             out.add(new BatchResult(batch.get(i).position, parsed.get(i)));
         }
-
         return out;
     }
 
-    // ===============================================================
-    // SUPPORT FUNCTIONS
-    // ===============================================================
-
     private String buildPrompt(List<SummaryRequest> batch) throws Exception {
-
         List<Map<String, Object>> safeItems = new ArrayList<>();
 
         for (SummaryRequest r : batch) {
             Map<String, Object> m = new HashMap<>(r.toPromptMap());
             Object content = m.get("content");
-
             if (content instanceof String s) {
                 m.put("content", truncate(s, MAX_CONTENT_CHARS));
             }
@@ -215,7 +184,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
     }
 
     private String truncate(String s, int max) {
-        return (s == null || s.length() <= max) ? s : (s.substring(0, max) + "…");
+        return (s == null || s.length() <= max) ? s : (s.substring(0, max) + "...");
     }
 
     private List<SummaryResult> parseSummaries(JsonNode root) {
@@ -250,7 +219,7 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
             out.add(new SummaryResult(
                     r.getTitle(),
                     r.getUrl(),
-                    List.of("⚠️ Fallback: Summary unavailable"),
+                    List.of("Fallback: Summary unavailable"),
                     "Content could not be processed",
                     "news"
             ));
@@ -258,9 +227,6 @@ public class SummarizationOrchestrator implements SummarizeUseCase {
         return out;
     }
 
-    // ===============================================================
-    // INTERNAL CLASSES
-    // ===============================================================
     private record PendingRequest(SummaryRequest request, int position) {}
     private record BatchResult(int position, SummaryResult summary) {}
 }

@@ -54,10 +54,8 @@ public class StorageService implements SummaryStorePort {
         initDatabase();
         WalModeUtils.enableWalMode(dataSource, logger);
 
-        logger.info("📦 StorageService initialized. SQLite at {}", this.databasePath.toAbsolutePath());
+        logger.info("StorageService initialized. SQLite at {}", this.databasePath.toAbsolutePath());
     }
-
-    /** INITIALIZE SCHEMA ==================================================== */
 
     private void initDatabase() {
         try (Connection conn = dataSource.getConnection();
@@ -90,18 +88,14 @@ public class StorageService implements SummaryStorePort {
         }
     }
 
-    /** SAVE ================================================================ */
-
     @Override
     public Path save(List<SummaryResult> summaries, Map<String, Object> extra) throws IOException {
         if (summaries == null) summaries = List.of();
-        
-        // Filter out any null entries (defense in depth)
+
         summaries = summaries.stream()
                 .filter(Objects::nonNull)
                 .toList();
 
-        // Metadata
         Map<String, Object> metadata = new HashMap<>();
         if (extra != null) metadata.putAll(extra);
         metadata.put("total_items", summaries.size());
@@ -124,7 +118,7 @@ public class StorageService implements SummaryStorePort {
             throw new IOException("Failed to persist summaries into SQLite", e);
         }
 
-        logger.info("💾 Saved {} summarized items into SQLite", summaries.size());
+        logger.info("Saved {} summarized items into SQLite", summaries.size());
         return databasePath;
     }
 
@@ -165,8 +159,6 @@ public class StorageService implements SummaryStorePort {
         }
     }
 
-    /** METADATA ============================================================ */
-
     private void persistMetadata(Connection conn, Map<String, Object> metadata)
             throws SQLException, IOException {
 
@@ -185,8 +177,6 @@ public class StorageService implements SummaryStorePort {
             ps.executeBatch();
         }
     }
-
-    /** LOAD ================================================================ */
 
     @Override
     public SummaryPayload loadExisting() throws IOException {
@@ -243,8 +233,6 @@ public class StorageService implements SummaryStorePort {
         return meta;
     }
 
-    /** JSON UTILS ========================================================== */
-
     private String serializeList(List<String> list) throws JsonProcessingException {
         if (list == null) return "[]";
         return mapper.writeValueAsString(list);
@@ -259,8 +247,6 @@ public class StorageService implements SummaryStorePort {
         if (json == null) return null;
         return mapper.readValue(json.getBytes(StandardCharsets.UTF_8), Object.class);
     }
-
-    /** SAFE STRING ========================================================= */
 
     private String sanitize(String s) {
         if (s == null) return null;

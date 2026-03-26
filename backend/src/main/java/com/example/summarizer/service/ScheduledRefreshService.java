@@ -21,24 +21,20 @@ public class ScheduledRefreshService {
     @Scheduled(fixedDelayString = "${refresh.interval.ms}")
     public void runScheduled() {
 
-        // 🔥 Job đang chạy → skip
         if (!coordinator.tryStartScheduled()) {
             return;
         }
 
-        // 🔥 Start async job
         String cid = "scheduler-" + System.currentTimeMillis();
 
         CompletableFuture<Void> future =
-                coordinator.runAsyncRefresh(20, cid)
+                        coordinator.runAsyncRefresh(20, cid)
                         .thenAccept(path ->
-                                log.info("📦 Scheduled job completed, output={}", path)
+                                log.info("Scheduled job completed, output={}", path)
                         )
                         .exceptionally(ex -> {
-                            log.error("❌ Scheduled job failed", ex);
+                            log.error("Scheduled job failed", ex);
                             return null;
                         });
-
-        // KHÔNG được block (no get()!)
     }
 }

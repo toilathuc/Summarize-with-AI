@@ -13,21 +13,33 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 
 public class CrawlClient {
 
     private static final Logger logger = LoggerFactory.getLogger(CrawlClient.class);
+    private static final int MAX_RETRY = 3;
+    private static final long INITIAL_BACKOFF_MS = 350;
+    private static final long DOMAIN_COOLDOWN_MS = 60_000;
+    private static final Pattern BAD_URL = Pattern.compile("^#|javascript:|^\\s*$");
+    private static final String JINA_PREFIX = "https://r.jina.ai/";
 
     private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper();
     private final URI endpoint;
     private final String apiKey;
-
     private final boolean enabled;
     private final boolean onlyMainContent;
     private final Long maxAge;
@@ -35,23 +47,12 @@ public class CrawlClient {
     private final List<String> parsers;
     private final Duration timeout;
     private final Counter externalCallCounter;
-
-    // Retry/backoff
-    private static final int MAX_RETRY = 3;
-    private static final long INITIAL_BACKOFF_MS = 350;
-
-    // Limit parallel requests
     private final Semaphore throttle = new Semaphore(3);
 
-    // Domain cooldown → tránh spam domain → giảm 429 cực mạnh
-    private static final long DOMAIN_COOLDOWN_MS = 60_000; // 60s
     private static final Map<String, Long> DOMAIN_COOLDOWN = new HashMap<>();
-
-    // Paywall domains skip (Hard paywalls only)
     private static final Set<String> PAYWALL_DOMAINS = Set.of(
             "wsj.com", "ft.com", "bloomberg.com", "economist.com"
     );
-
     private static final List<String> USER_AGENTS = List.of(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1 Safari/537.36",
@@ -59,30 +60,25 @@ public class CrawlClient {
             "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1 Safari/604.1"
     );
 
-    private static final Pattern BAD_URL = Pattern.compile("^#|javascript:|^\\s*$");
-    private static final String JINA_PREFIX = "https://r.jina.ai/";
-
-    public CrawlClient(String endpointUrl,
-                       String apiKey,
-                       boolean enabled,
-                       boolean onlyMainContent,
-                       Long maxAge,
-                       List<String> formats,
-                       List<String> parsers,
-                       Duration timeout,
-                       MeterRegistry registry) {
-
+    public CrawlClient(
+            String endpointUrl,
+            String apiKey,
+            boolean enabled,
+            boolean onlyMainContent,
+            Long maxAge,
+            List<String> formats,
+            List<String> parsers,
+            Duration timeout,
+            MeterRegistry registry
+    ) {
         this.endpoint = endpointUrl == null ? null : URI.create(endpointUrl);
         this.apiKey = apiKey;
-
         this.enabled = enabled && apiKey != null && !apiKey.isBlank() && endpoint != null;
         this.onlyMainContent = onlyMainContent;
-
         this.maxAge = maxAge != null && maxAge > 0 ? maxAge : null;
         this.formats = (formats == null || formats.isEmpty()) ? List.of("markdown") : List.copyOf(formats);
         this.parsers = parsers == null ? List.of() : List.copyOf(parsers);
-
-        this.timeout = (timeout == null ? Duration.ofSeconds(45) : timeout);
+        this.timeout = timeout == null ? Duration.ofSeconds(45) : timeout;
         this.externalCallCounter = registry == null ? null
                 : registry.counter("summarizer_external_calls_total", "service", "firecrawl");
 
@@ -91,58 +87,43 @@ public class CrawlClient {
                 .build();
 
         if (enabled && !this.enabled) {
-            logger.warn("Firecrawl disabled → missing API key or endpoint");
+            logger.warn("Firecrawl disabled: missing API key or endpoint");
         }
     }
 
-    // =====================================================================
-    // MAIN API
-    // =====================================================================
-
     public Optional<String> fetchMarkdown(String targetUrl) {
-        // 1. Try Firecrawl first
         Optional<String> fc = fetchFromFirecrawl(targetUrl);
         if (fc.isPresent()) return fc;
-    
-        // 2. Fallback to Jina AI (Free)
+
         Optional<String> jina = fetchFromJina(targetUrl);
         if (jina.isPresent()) return jina;
 
-        // 3. Fallback to Jsoup (Local)
         return fetchFromJsoup(targetUrl);
     }
 
     private Optional<String> fetchFromFirecrawl(String targetUrl) {
-        if (!enabled) return Optional.empty();
-        if (!validateUrl(targetUrl)) return Optional.empty();
+        if (!enabled || !validateUrl(targetUrl)) return Optional.empty();
         incrementExternalCalls();
 
-        // Paywall skip
         if (isPaywallDomain(targetUrl)) {
-            logger.warn("Skipping paywall domain → {}", targetUrl);
+            logger.warn("Skipping paywall domain: {}", targetUrl);
             return Optional.empty();
         }
-        
 
         String domain = extractDomain(targetUrl);
         long now = System.currentTimeMillis();
-
-        // Domain cooldown — tránh bị firecrawl block
         if (domain != null) {
             Long last = DOMAIN_COOLDOWN.get(domain);
-            if (last != null && (now - last < DOMAIN_COOLDOWN_MS)) {
-                logger.warn("Skip domain [{}] due to cooldown ({} ms left)", 
-                        domain, DOMAIN_COOLDOWN_MS - (now - last));
+            if (last != null && now - last < DOMAIN_COOLDOWN_MS) {
+                logger.warn("Skip domain [{}] due to cooldown ({} ms left)", domain, DOMAIN_COOLDOWN_MS - (now - last));
                 return Optional.empty();
             }
         }
 
-        logger.debug("Firecrawl request => {}", targetUrl);
+        logger.debug("Firecrawl request: {}", targetUrl);
 
         try {
-            throttle.acquire(); // limit concurrency
-
-            // Short global delay tránh burst
+            throttle.acquire();
             Thread.sleep(120 + new Random().nextInt(120));
 
             String payload = mapper.writeValueAsString(buildPayload(targetUrl));
@@ -157,64 +138,50 @@ public class CrawlClient {
                     .build();
 
             Optional<String> result = executeWithRetry(request, targetUrl);
-
-            // Update domain cooldown
-            DOMAIN_COOLDOWN.put(domain, System.currentTimeMillis());
-
+            if (domain != null) {
+                DOMAIN_COOLDOWN.put(domain, System.currentTimeMillis());
+            }
             return result;
-
         } catch (Exception ex) {
-            logger.warn("Firecrawl failed for {} → {}", targetUrl, ex.getMessage());
+            logger.warn("Firecrawl failed for {}: {}", targetUrl, ex.getMessage());
             return Optional.empty();
-
         } finally {
             throttle.release();
         }
     }
 
-    // =====================================================================
-    // RETRY LOGIC
-    // =====================================================================
-
     private Optional<String> executeWithRetry(HttpRequest request, String url)
             throws IOException, InterruptedException {
-
         long backoff = INITIAL_BACKOFF_MS;
 
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
-
-            logger.info("Firecrawl attempt {}/{} => {}", attempt, MAX_RETRY, url);
+            logger.info("Firecrawl attempt {}/{}: {}", attempt, MAX_RETRY, url);
 
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             int code = resp.statusCode();
 
-            // Success case
             if (code >= 200 && code < 300) {
-                return parseMarkdown(resp.body())
-                        .map(md -> {
-                            logger.info("Firecrawl success at ({} chars) <= {}", md.length(), url);
-                            return md;
-                        });
+                return parseMarkdown(resp.body()).map(md -> {
+                    logger.info("Firecrawl success ({} chars): {}", md.length(), url);
+                    return md;
+                });
             }
 
-            // Retryable
             if (code == 429 || code == 503) {
                 logger.warn("Rate limit {} for {} (attempt {}/{})", code, url, attempt, MAX_RETRY);
 
                 Optional<Long> retryAfter = parseRetryAfter(resp);
-
                 if (retryAfter.isPresent()) {
                     Thread.sleep(retryAfter.get());
                 } else if (attempt < MAX_RETRY) {
                     Thread.sleep(backoff);
                     backoff = Math.min(backoff * 2, 3000);
                 } else {
-                    logger.warn("Max retries reached for {} → giving up", url);
+                    logger.warn("Max retries reached for {}, giving up", url);
                 }
                 continue;
             }
 
-            // non-retryable
             logger.warn("Firecrawl returned {} for {}", code, url);
             logErrorDetail(resp.body());
             return Optional.empty();
@@ -229,13 +196,10 @@ public class CrawlClient {
             if (header != null) {
                 return Optional.of(Long.parseLong(header) * 1000);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return Optional.empty();
     }
-
-    // =====================================================================
-    // HELPERS
-    // =====================================================================
 
     private void logErrorDetail(String body) {
         try {
@@ -244,7 +208,8 @@ public class CrawlClient {
             if (!err.isMissingNode()) {
                 logger.warn("Firecrawl error detail: {}", err.toString());
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private boolean validateUrl(String url) {
@@ -288,9 +253,8 @@ public class CrawlClient {
     }
 
     private Optional<String> fetchFromJina(String targetUrl) {
-        logger.info("🔄 Fallback to Jina AI for: {}", targetUrl);
+        logger.info("Fallback to Jina AI for: {}", targetUrl);
         try {
-            // Jina doesn't need API key for free tier, just append URL
             String jinaUrl = JINA_PREFIX + targetUrl;
 
             HttpRequest request = HttpRequest.newBuilder(URI.create(jinaUrl))
@@ -303,19 +267,16 @@ public class CrawlClient {
 
             if (resp.statusCode() == 200) {
                 String body = resp.body();
-                // Jina raw response is usually the markdown itself if no Accept header, 
-                // but with Accept: application/json it returns JSON.
-                // Let's try to parse as JSON first, if fails treat as raw text.
                 try {
                     JsonNode root = mapper.readTree(body);
                     if (root.has("data") && root.get("data").has("content")) {
-                         return Optional.of(root.get("data").get("content").asText());
+                        return Optional.of(root.get("data").get("content").asText());
                     }
-                } catch (Exception ignored) {}
-                
-                // Fallback: treat body as markdown
+                } catch (Exception ignored) {
+                }
+
                 if (body != null && body.length() > 100) {
-                    logger.info("✅ Jina AI success ({} chars)", body.length());
+                    logger.info("Jina AI success ({} chars)", body.length());
                     return Optional.of(body);
                 }
             }
@@ -327,20 +288,19 @@ public class CrawlClient {
     }
 
     private Optional<String> fetchFromJsoup(String targetUrl) {
-        logger.info("🔄 Fallback to Jsoup (Local) for: {}", targetUrl);
+        logger.info("Fallback to Jsoup (Local) for: {}", targetUrl);
         try {
             Document doc = Jsoup.connect(targetUrl)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
                     .timeout(30000)
                     .get();
 
-            // Simple extraction: title + body text
             String title = doc.title();
-            String body = doc.body().text(); // extracts visible text
+            String body = doc.body().text();
 
             if (body.length() > 200) {
                 String markdown = "# " + title + "\n\n" + body;
-                logger.info("✅ Jsoup success ({} chars)", markdown.length());
+                logger.info("Jsoup success ({} chars)", markdown.length());
                 return Optional.of(markdown);
             }
         } catch (Exception e) {

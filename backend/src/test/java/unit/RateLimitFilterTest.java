@@ -12,8 +12,9 @@ import org.junit.jupiter.api.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 class RateLimitFilterTest {
 
@@ -21,8 +22,7 @@ class RateLimitFilterTest {
     private HttpServletRequest req;
     private HttpServletResponse res;
     private FilterChain chain;
-
-    private SimpleMeterRegistry registry; // FIX: use real registry
+    private SimpleMeterRegistry registry;
 
     @BeforeEach
     void setup() {
@@ -30,8 +30,7 @@ class RateLimitFilterTest {
         req = mock(HttpServletRequest.class);
         res = mock(HttpServletResponse.class);
         chain = mock(FilterChain.class);
-
-        registry = new SimpleMeterRegistry(); // FIXED
+        registry = new SimpleMeterRegistry();
     }
 
     @Test
@@ -40,7 +39,6 @@ class RateLimitFilterTest {
 
         when(req.getRemoteAddr()).thenReturn("1.1.1.1");
         when(req.getRequestURI()).thenReturn("/api/refresh");
-
         when(rl.allow("ip:1.1.1.1:refresh", 5, 60)).thenReturn(false);
         when(rl.getRetryAfter("ip:1.1.1.1:refresh")).thenReturn(30L);
 
@@ -56,7 +54,6 @@ class RateLimitFilterTest {
         pw.flush();
         assertTrue(sw.toString().contains("\"scope\":\"refresh\""));
 
-        // Optional assertion: metrics incremented
         assertEquals(
                 1.0,
                 registry.get("summarizer_rate_limit_total")
@@ -73,7 +70,6 @@ class RateLimitFilterTest {
 
         when(req.getRemoteAddr()).thenReturn("7.7.7.7");
         when(req.getRequestURI()).thenReturn("/api/summaries");
-
         when(rl.allow("ip:7.7.7.7:all", 2, 60)).thenReturn(false);
         when(rl.getRetryAfter("ip:7.7.7.7:all")).thenReturn(10L);
 
@@ -89,7 +85,6 @@ class RateLimitFilterTest {
         pw.flush();
         assertTrue(sw.toString().contains("\"scope\":\"global\""));
 
-        // Optional assertion: metrics incremented
         assertEquals(
                 1.0,
                 registry.get("summarizer_rate_limit_total")

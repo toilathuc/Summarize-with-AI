@@ -8,11 +8,15 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class PayloadToMapUtils {
 
-    private PayloadToMapUtils(ClockPort clock) {};
+    private PayloadToMapUtils(ClockPort clock) {}
 
     public static Map<String, Object> convertPayloadToMap(SummaryPayload payload) throws IOException {
         if (payload == null) {
@@ -20,7 +24,6 @@ public class PayloadToMapUtils {
         }
 
         Map<String, Object> extras = new HashMap<>(payload.getExtra());
-
         String lastUpdated = stringValue(extras.get("last_updated"));
         OffsetDateTime parsedTime = parseTimeSafe(lastUpdated);
 
@@ -30,10 +33,8 @@ public class PayloadToMapUtils {
         List<?> items = payload.getSummaries();
         int count = items == null ? 0 : items.size();
 
-        // ensure correlation id exists
         extras.putIfAbsent("correlation_id", UUID.randomUUID().toString());
 
-        // API response shape
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(extras);
         response.put("items", items);
@@ -53,11 +54,9 @@ public class PayloadToMapUtils {
         if (val == null || val.isBlank()) return null;
 
         try {
-            // auto handle Z, +00:00, offset variations
             return OffsetDateTime.parse(val);
         } catch (DateTimeParseException e) {
             try {
-                // fallback: replace Z → UTC
                 return OffsetDateTime.parse(val.replace("Z", "+00:00"));
             } catch (Exception ex) {
                 return null;
@@ -83,8 +82,7 @@ public class PayloadToMapUtils {
         long hours = minutes / 60;
         if (hours < 24) {
             long remainMin = minutes % 60;
-            return remainMin == 0 ? (hours + " hours ago")
-                    : (hours + "h " + remainMin + "m ago");
+            return remainMin == 0 ? (hours + " hours ago") : (hours + "h " + remainMin + "m ago");
         }
 
         long days = hours / 24;

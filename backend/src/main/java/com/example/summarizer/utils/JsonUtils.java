@@ -1,10 +1,5 @@
 package com.example.summarizer.utils;
 
-/**
- * Utility methods for dealing with noisy model outputs that may include
- * extra text around a JSON blob. The strategy here is pragmatic: return
- * the substring between the first '{' and the last '}' to obtain JSON.
- */
 public final class JsonUtils {
     private JsonUtils() {}
 

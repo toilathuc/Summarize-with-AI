@@ -11,14 +11,14 @@ import com.example.summarizer.service.lock.LockService;
 import com.example.summarizer.utils.PayloadToMapUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 
-import jakarta.annotation.PostConstruct;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,8 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RefreshCoordinator {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshCoordinator.class);
-
-    // Redis key
     private static final String REFRESH_LOCK = "refresh-job";
 
     private final SummarizeUseCase orchestrator;
@@ -55,7 +53,6 @@ public class RefreshCoordinator {
                 return t;
             });
 
-    // ====== STATE ======
     private volatile Instant lastRunAt = Instant.EPOCH;
     private volatile String lastReason = "never_run";
     private volatile String currentCorrelationId = null;
@@ -80,17 +77,12 @@ public class RefreshCoordinator {
         registry.gauge("summarizer_refresh_running", refreshRunningGauge);
     }
 
-    /**
-     * Initialize the coordinator.
-     * Note: We do NOT clear stale locks here anymore to support multiple instances.
-     * We rely on the lock TTL to expire naturally if a previous instance crashed.
-     */
     @PostConstruct
     public void init() {
         if (lockService.isLocked(REFRESH_LOCK)) {
-            log.info("ℹ️ Refresh lock is currently held. Relying on TTL to expire it if stale.");
+            log.info("Refresh lock is currently held. Relying on TTL to expire it if stale.");
         }
-        log.info("✅ RefreshCoordinator initialized");
+        log.info("RefreshCoordinator initialized");
     }
 
     @PreDestroy
@@ -98,11 +90,8 @@ public class RefreshCoordinator {
         lockRefresher.shutdown();
     }
 
-    // ========================= STATUS API =========================
     public RefreshStatus getStatus() {
-
         boolean running = lockService.isLocked(REFRESH_LOCK);
-
         return new RefreshStatus(
                 running,
                 lastRunAt != null ? lastRunAt : Instant.EPOCH,
@@ -111,20 +100,11 @@ public class RefreshCoordinator {
         );
     }
 
-    // ========================= START MANUAL =======================
-    /**
-     * Manual refresh: fail fast nếu đang chạy.
-     */
     public boolean tryStartManual() {
-
-        boolean locked = lockService.tryLock(
-                REFRESH_LOCK,
-                lockTtl
-        );
-
+        boolean locked = lockService.tryLock(REFRESH_LOCK, lockTtl);
         if (!locked) {
             lastReason = "manual_blocked_already_running";
-            log.warn("⚠️ Manual refresh blocked — an existing refresh is running");
+            log.warn("Manual refresh blocked: an existing refresh is running");
             return false;
         }
 
@@ -132,20 +112,11 @@ public class RefreshCoordinator {
         return true;
     }
 
-    // ========================= START SCHEDULED ====================
-    /**
-     * Scheduled refresh: nếu đang chạy thì skip, KHÔNG chặn.
-     */
     public boolean tryStartScheduled() {
-
-        boolean locked = lockService.tryLock(
-                REFRESH_LOCK,
-                lockTtl
-        );
-
+        boolean locked = lockService.tryLock(REFRESH_LOCK, lockTtl);
         if (!locked) {
             lastReason = "scheduled_skip_already_running";
-            log.info("⏭ Scheduled refresh skipped — a previous job is still running");
+            log.info("Scheduled refresh skipped: a previous job is still running");
             return false;
         }
 
@@ -153,10 +124,8 @@ public class RefreshCoordinator {
         return true;
     }
 
-    // ========================= ASYNC PIPELINE =====================
     @Async
     public CompletableFuture<Path> runAsyncRefresh(int top, String correlationId) {
-
         Timer.Sample sample = Timer.start();
         refreshRunningGauge.set(1);
         currentCorrelationId = correlationId;
@@ -164,52 +133,43 @@ public class RefreshCoordinator {
         ScheduledFuture<?> renewal = scheduleLockRenewal();
 
         try {
-            log.info("🔥 REFRESH STARTED — top={}, cid={}", top, correlationId);
+            log.info("REFRESH STARTED: top={}, cid={}", top, correlationId);
 
-            // FEED
             List<FeedArticle> articles = feedPort.fetchLatest(top);
-            log.info("📥 Fetched {} articles from Techmeme", articles.size());
+            log.info("Fetched {} articles from Techmeme", articles.size());
 
-            // SUMMARIZE
             List<SummaryResult> summaries = orchestrator.summarize(articles);
-            log.info("🧠 Summarized {} articles", summaries.size());
+            log.info("Summarized {} articles", summaries.size());
 
             Map<String, Object> extras = Map.of(
                     "last_updated", OffsetDateTime.now().toString(),
                     "correlation_id", correlationId
             );
 
-            // STORE
             Path out = summaryStore.save(summaries, extras);
-            log.info("🧾 Saved {} summaries into SummaryStore", summaries.size());
+            log.info("Saved {} summaries into SummaryStore", summaries.size());
 
-            // Invalidate caches
             cacheService.evictSummaries();
             cacheService.evictFeed(top);
 
-            // Insert summaries into cache
             SummaryPayload payload = new SummaryPayload(summaries, extras);
             cacheService.putSummaries(PayloadToMapUtils.convertPayloadToMap(payload));
-            log.info("🗃 Updated summaries cache");
+            log.info("Updated summaries cache");
 
-            // Insert each summary-result into cache
             for (SummaryResult result : summaries) {
                 cacheService.putSummaryResult(result);
             }
-            log.info("🗃 Updated summaries and summary-results caches");
+            log.info("Updated summaries and summary-results caches");
 
-            // STATE
             lastRunAt = Instant.now();
             lastReason = "success";
-            log.info("✅ REFRESH COMPLETED — cid={}, at={}", correlationId, lastRunAt);
+            log.info("REFRESH COMPLETED: cid={}, at={}", correlationId, lastRunAt);
 
             return CompletableFuture.completedFuture(out);
-
         } catch (Exception ex) {
-            log.error("❌ REFRESH FAILED — cid={}", correlationId, ex);
+            log.error("REFRESH FAILED: cid={}", correlationId, ex);
             lastReason = "error";
             return CompletableFuture.failedFuture(ex);
-
         } finally {
             lockService.unlock(REFRESH_LOCK);
             refreshRunningGauge.set(0);
@@ -220,17 +180,15 @@ public class RefreshCoordinator {
     }
 
     private ScheduledFuture<?> scheduleLockRenewal() {
-        // Refresh the lock before TTL expires to avoid double-runs on long jobs.
         long intervalSeconds = Math.max(5, lockTtl.getSeconds() / 3);
         return lockRefresher.scheduleAtFixedRate(() -> {
             try {
                 lockService.extendLock(REFRESH_LOCK, lockTtl);
             } catch (Exception ex) {
-                log.warn("⚠️ Failed to extend refresh lock: {}", ex.getMessage());
+                log.warn("Failed to extend refresh lock: {}", ex.getMessage());
             }
         }, intervalSeconds, intervalSeconds, TimeUnit.SECONDS);
     }
 
-    // ====== RECORD ======
     public record RefreshStatus(boolean running, Instant lastRunAt, String reason, String correlationId) {}
 }

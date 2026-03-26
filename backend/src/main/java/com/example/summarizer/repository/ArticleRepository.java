@@ -14,7 +14,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -25,10 +29,9 @@ public class ArticleRepository implements ArticleStorePort {
 
     private final Path databasePath;
     private final SQLiteDataSource dataSource;
-    private Logger logger = LoggerFactory.getLogger(ArticleRepository.class);
+    private final Logger logger = LoggerFactory.getLogger(ArticleRepository.class);
 
     public ArticleRepository(@Value("${storage.database-path}") String databasePathStr) {
-
         Path path = Paths.get(databasePathStr);
         if (!path.isAbsolute()) {
             path = Paths.get(System.getProperty("user.dir")).resolve(path);
@@ -48,7 +51,6 @@ public class ArticleRepository implements ArticleStorePort {
         WalModeUtils.enableWalMode(dataSource, logger);
     }
 
-    /** Schema + Index */
     private void initSchema() {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
@@ -75,17 +77,13 @@ public class ArticleRepository implements ArticleStorePort {
                 CREATE INDEX IF NOT EXISTS idx_articles_url
                 ON articles (url)
             """);
-
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize articles schema", e);
         }
     }
 
-    /** FETCH =========================================================== */
-
     @Override
     public List<FeedArticle> fetchLatestFromTable(Integer limit) throws IOException {
-
         String sql = """
             SELECT title, url, description, content, is_summarized
             FROM articles
@@ -105,9 +103,7 @@ public class ArticleRepository implements ArticleStorePort {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-
                     String url = normalizeUrl(rs.getString("url"));
-
                     FeedArticle article = new FeedArticle(
                             rs.getString("title"),
                             url,
@@ -115,11 +111,9 @@ public class ArticleRepository implements ArticleStorePort {
                             rs.getString("content"),
                             rs.getInt("is_summarized") == 1
                     );
-
                     out.add(article);
                 }
             }
-
         } catch (SQLException e) {
             throw new IOException("Failed to fetch articles from SQLite", e);
         }
@@ -127,15 +121,11 @@ public class ArticleRepository implements ArticleStorePort {
         return out;
     }
 
-    /** SAVE =========================================================== */
-
     @Override
     public void replaceAll(List<FeedArticle> articles, String source) throws IOException {
-
         String now = OffsetDateTime.now(ZoneOffset.UTC).toString();
 
         try (Connection conn = dataSource.getConnection()) {
-
             conn.setAutoCommit(false);
 
             try {
@@ -146,7 +136,6 @@ public class ArticleRepository implements ArticleStorePort {
                 conn.rollback();
                 throw new IOException("Failed to persist articles", ex);
             }
-
         } catch (SQLException e) {
             throw new IOException("Failed to persist articles", e);
         }
@@ -160,7 +149,6 @@ public class ArticleRepository implements ArticleStorePort {
 
     private void insertBatch(Connection conn, List<FeedArticle> articles, String source, String createdAt)
             throws SQLException {
-
         if (articles == null || articles.isEmpty()) return;
 
         String sql = """
@@ -169,9 +157,7 @@ public class ArticleRepository implements ArticleStorePort {
         """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
             for (FeedArticle a : articles) {
-
                 ps.setString(1, sanitize(a.getTitle()));
                 ps.setString(2, normalizeUrl(a.getUrl()));
                 ps.setString(3, sanitize(a.getDescription()));
@@ -179,39 +165,29 @@ public class ArticleRepository implements ArticleStorePort {
                 ps.setString(5, sanitize(source));
                 ps.setInt(6, Boolean.TRUE.equals(a.getIsSummarized()) ? 1 : 0);
                 ps.setString(7, createdAt);
-
                 ps.addBatch();
             }
-
             ps.executeBatch();
         }
     }
-
-    /** METADATA ======================================================= */
 
     @Override
     public boolean isEmpty() throws IOException {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT COUNT(1) AS total FROM articles")) {
-
             return rs.next() && rs.getInt("total") == 0;
-
         } catch (SQLException e) {
             throw new IOException("Failed to check article count", e);
         }
     }
 
-    /** UTILS ========================================================== */
-
-    /** RSS đôi khi có url = "#" → bỏ */
     private String normalizeUrl(String url) {
         if (url == null || url.isBlank()) return null;
         if (url.equals("#")) return null;
         return url.trim();
     }
 
-    /** sanitize UTF-8 để tránh lỗi insert khi có emoji hoặc ký tự control */
     private String sanitize(String input) {
         if (input == null) return null;
         return new String(input.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);

@@ -6,7 +6,6 @@ import com.example.summarizer.ports.SummarizeUseCase;
 import com.example.summarizer.ports.SummarizerPort;
 import com.example.summarizer.service.SummarizationOrchestrator;
 import io.micrometer.core.instrument.MeterRegistry;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,15 +37,10 @@ public class GeminiConfig {
     @Value("${summarizer.promptTemplate:{items_json}}")
     private String promptTemplate;
 
-
-    /**
-     * Build GeminiClient bean
-     */
     @Bean
     public SummarizerPort geminiClient(MeterRegistry registry) {
-
         String effectiveEndpoint = resolveEndpoint();
-        String safeKey = (apiKey != null) ? apiKey.trim() : "";
+        String safeKey = apiKey != null ? apiKey.trim() : "";
 
         return new GeminiClient(
                 safeKey,
@@ -59,19 +53,12 @@ public class GeminiConfig {
         );
     }
 
-
-    /**
-     * Resolve đúng endpoint theo provider
-     */
     private String resolveEndpoint() {
         String target = endpoint;
-
-        // Default to Google Gemini endpoint if not specified
         if (target == null || target.isBlank() || target.contains("example.com")) {
             target = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
         }
 
-        // Replace {model} placeholder
         if (target.contains("{model}")) {
             return target.replace("{model}", model);
         }
@@ -79,15 +66,9 @@ public class GeminiConfig {
         return target;
     }
 
-
-    /**
-     * Build SummarizationOrchestrator
-     */
     @Bean
     public SummarizeUseCase summarizationOrchestrator(SummarizerPort client, CachePort cache) {
         String safeTemplate = promptTemplate;
-
-        // đảm bảo template không bị rỗng
         if (safeTemplate == null || safeTemplate.isBlank()) {
             safeTemplate = "{items_json}";
         }

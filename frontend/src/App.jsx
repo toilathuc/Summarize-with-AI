@@ -35,13 +35,11 @@ export default function App() {
 
   const { notification, showSuccess, showError } = useNotification();
 
-  // Keyboard shortcuts
   useKeyboardShortcuts(searchRef, () => {
     setSearch("");
     setFilteredData(newsData);
   });
 
-  // Load data on mount
   useEffect(() => {
     loadInitialData();
     refreshStatusOnce();
@@ -79,7 +77,6 @@ export default function App() {
     }
   }
 
-  // Search debounced
   const debouncedSearch = debounce((keyword) => {
     const filtered = applyFilters(newsData, keyword, typeFilter);
     setFilteredData(filtered);
@@ -98,7 +95,6 @@ export default function App() {
     setFilteredData(filtered);
   }
 
-  // Full refresh
   async function handleFullRefresh() {
     if (refreshStatus.running || isStartingRefresh) {
       showError("Đang có tiến trình làm mới, vui lòng đợi.");
@@ -129,7 +125,6 @@ export default function App() {
         return;
       }
 
-      // Started new job
       setRefreshStatus((prev) => ({
         ...prev,
         running: true,
@@ -155,7 +150,6 @@ export default function App() {
       const status = await fetchRefreshStatus();
       setRefreshStatus(status);
 
-      // Detect transition running -> idle to auto reload
       if (wasRunning.current && !status.running) {
         await loadAfterRefresh();
       }
@@ -178,7 +172,7 @@ export default function App() {
 
       showSuccess("Đã làm mới nguồn tin.");
     } catch (err) {
-      console.error("Failed to reload after refresh", err);
+      console.error(err);
       showError("Làm mới xong nhưng tải dữ liệu thất bại.");
     }
   }
@@ -190,7 +184,6 @@ export default function App() {
   return (
     <main className="dashboard">
 
-      {/* HEADER */}
       <section className="panel masthead">
 
         <div className="masthead__header">
@@ -218,7 +211,6 @@ export default function App() {
 
         <StatsBar lastUpdated={lastUpdated} count={filteredData.length} />
 
-        {/* FILTERS */}
         <form className="filters__form">
 
           <div className="field">
@@ -250,7 +242,6 @@ export default function App() {
         </form>
       </section>
 
-      {/* LOADING */}
       {loading && (
         <section className="panel loading-state">
           <i className="fas fa-spinner fa-spin"></i>
@@ -258,11 +249,9 @@ export default function App() {
         </section>
       )}
 
-      {/* FEED */}
       {!loading && (
         <section className="feed">
 
-          {/* EMPTY STATE OUTSIDE FEED GRID */}
           {filteredData.length === 0 ? (
             <section className="panel empty-state">
               <i className="fas fa-search"></i>
@@ -278,7 +267,6 @@ export default function App() {
         </section>
       )}
 
-      {/* FOOTER */}
       <footer className="site-footer">
         <small>
           © 2025 Tổng hợp tin công nghệ · Dữ liệu từ{" "}
@@ -288,7 +276,6 @@ export default function App() {
         </small>
       </footer>
 
-      {/* NOTIFICATION */}
       {notification && (
         <Notification message={notification.message} type={notification.type} />
       )}
